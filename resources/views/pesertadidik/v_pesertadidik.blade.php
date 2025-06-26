@@ -14,7 +14,6 @@
             <div>
                 <div class="p-4 text-xl font-bold bg-black text-white text-center">SKB</div>
                 <div class="mt-4 text-center">
-                    <p class="font-semibold">{{ Session::get('user')['username'] }}</p>
                     <p class="text-sm text-gray-600">Peserta Didik</p>
                 </div>
                 <nav class="mt-6 space-y-1">

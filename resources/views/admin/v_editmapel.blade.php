@@ -1,52 +1,35 @@
 @extends('admin.templateadmin')
+
 @section('content')
+<div class="container mx-auto px-4 py-6">
+    <h1 class="text-2xl font-bold mb-6">Edit Mata Pelajaran</h1>
 
-<div class="container mx-auto mt-20 px-4">
-    <div class="max-w-xl mx-auto bg-white rounded-2xl shadow-md p-6">
-        <h2 class="text-2xl font-bold text-gray-700 mb-6 border-b pb-2">Edit Data Mata Pelajaran</h2>
+    <form action="{{ route('update.mapel', $mapel->id_mapel) }}" method="POST">
+        @csrf
 
-        <form action="/admin/mapel/update/{{ $mapel->id_mapel }}" method="POST" enctype="multipart/form-data">
-            @csrf
+        <!-- Input Nama Mapel -->
+        <div class="mb-4">
+            <label for="nama_mapel" class="block font-semibold">Nama Mata Pelajaran:</label>
+            <input type="text" name="nama_mapel" id="nama_mapel" class="w-full border rounded p-2"
+                   value="{{ $mapel->nama_mapel }}" required>
+        </div>
 
-            <!-- NIS -->
-            <div class="mb-4">
-                <label class="block text-gray-600 font-medium mb-1">ID Mata Pelajaran</label>
-                <input type="text" name="id_mapel" class="w-full px-4 py-2 border border-gray-300 rounded-md bg-gray-100 text-gray-700 focus:outline-none focus:ring focus:border-blue-500" value="{{ $mapel->id_mapel }}" readonly>
-                @error('id_mapel')
-                    <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
-                @enderror
-            </div>
+        <!-- Dropdown Paket -->
+        <div class="mb-4">
+            <label for="id_paket" class="block font-semibold">Paket Program:</label>
+            <select name="id_paket" id="id_paket" class="w-full border rounded p-2" required>
+                <option value="">-- Pilih Paket --</option>
+                @foreach ($paket as $p)
+                    <option value="{{ $p->id_paket }}" {{ $mapel->id_paket == $p->id_paket ? 'selected' : '' }}>
+                        {{ $p->nama_paket }}
+                    </option>
+                @endforeach
+            </select>
+        </div>
 
-            <!-- Nama -->
-            <div class="mb-4">
-                <label class="block text-gray-600 font-medium mb-1">Nama Mata Pelajaran</label>
-                <input type="text" name="mapel" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:border-blue-500" placeholder="Masukkan Nama Siswa" value="{{ $mapel->mapel }}">
-                @error('mapel')
-                    <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
-                @enderror
-            </div>
-
-            <div class="mb-6">
-                <label class="block text-gray-600 font-medium mb-1">Pamong Yang Mengajar</label>
-                <select name="id_pamong" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:border-blue-500" value="{{ $mapel->nip }}">
-                    <option value="">Pilih</option>
-                    @foreach($pamong as $p)
-                        <option value="{{ $p->nip }}">{{ $p->nama }}</option>
-                    @endforeach
-                    <!-- Tambahkan sesuai data -->
-                </select>
-                @error('nip')
-                    <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
-                @enderror
-            </div>
-
-            <div class="flex justify-end">
-                <button type="submit" class="bg-yellow-500 hover:bg-yellow-600 text-white font-semibold px-4 py-2 rounded-lg transition duration-200">
-                    Update
-                </button>
-            </div>
-        </form>
-    </div>
+        <!-- Tombol -->
+        <button type="submit" class="bg-yellow-500 text-white px-4 py-2 rounded">Update</button>
+        <a href="{{ route('admin.mapel') }}" class="ml-2 text-gray-600 hover:underline">Batal</a>
+    </form>
 </div>
-
 @endsection

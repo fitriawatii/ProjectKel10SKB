@@ -1,64 +1,69 @@
 @extends('pamong.templatepamong')
 
 @section('content')
-<div class="max-w-3xl mx-auto mt-10">
-    <div class="bg-white shadow-md rounded-lg">
-        <div class="bg-blue-600 text-white px-6 py-4 rounded-t-lg">
-            <h4 class="text-lg font-semibold">Tambah Tugas</h4>
-        </div>
-        <div class="px-6 py-4">
-            <a href="/pamong/tabeltugas" class="inline-block mb-4 text-white bg-red-500 hover:bg-red-600 px-4 py-2 rounded">
-                Kembali
-            </a>
+<h1 class="text-2xl font-bold mb-6">Data Tugas</h1>
 
-            <form action="{{ route('insert.tugas') }}" method="POST" enctype="multipart/form-data">
-                @csrf
-
-                <div class="mb-4">
-                    <label for="judul_tugas" class="block font-semibold mb-1">Judul Tugas</label>
-                    <input type="text" name="judul_tugas" class="w-full border border-gray-300 p-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-400" placeholder="Masukkan judul tugas" required>
-                </div>
-
-                <div class="mb-4">
-                    <label for="deskripsi" class="block font-semibold mb-1">Deskripsi</label>
-                    <textarea name="deskripsi" class="w-full border border-gray-300 p-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-400" rows="5" placeholder="Tulis deskripsi tugas" required></textarea>
-                </div>
-
-                <div class="mb-4">
-                    <label for="id_mapel" class="block font-semibold mb-1">Mapel</label>
-                    <select name="id_mapel" class="w-full border border-gray-300 p-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-400" required>
-                        <option value="">Pilih Mapel</option>
-                        @foreach($mapel as $m)
-                            <option value="{{ $m->id_mapel }}">{{ $m->mapel }}</option>
-                        @endforeach
-                    </select>
-                </div>
-
-                <div class="mb-4">
-                    <label for="id_kelas" class="block font-semibold mb-1">Kelas</label>
-                    <select name="id_kelas" class="w-full border border-gray-300 p-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-400" required>
-                        <option value="">Pilih Kelas</option>
-                        @foreach($kelas as $k)
-                            <option value="{{ $k->id_kelas }}">{{ $k->kelas }}</option>
-                        @endforeach
-                    </select>
-                </div>
-
-                <div class="mb-4">
-                    <label for="file_tugas" class="block font-semibold mb-1">Upload File <span class="text-sm text-gray-500">(Max 10MB)</span></label>
-                    <input type="file" name="file_tugas" class="w-full border border-gray-300 p-2 rounded">
-                </div>
-
-                <div class="mb-4">
-                    <label for="tanggal_deadline" class="block font-semibold mb-1">Tanggal Deadline</label>
-                    <input type="date" name="tanggal_deadline" class="w-full border border-gray-300 p-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-400" required>
-                </div>
-
-                <button type="submit" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
-                    Simpan Tugas
-                </button>
-            </form>
-        </div>
+<div class="bg-white rounded shadow p-6">
+    <div class="mb-4 flex justify-between items-center">
+        <a class="bg-blue-600 text-white px-4 py-2 rounded mr-2" href="/pamong/tabeltugas/tambah">Tambah</a>
     </div>
+
+    <table class="min-w-full table-auto border border-gray-300">
+        <thead class="bg-gray-100 text-left">
+            <tr>
+                <th class="border border-gray-300 px-4 py-2">Judul Tugas</th>
+                <th class="border border-gray-300 px-4 py-2">Mata Pelajaran</th>
+                <th class="border border-gray-300 px-4 py-2">Kelas</th>
+                <th class="border border-gray-300 px-4 py-2">Deskripsi</th>
+                <th class="border border-gray-300 px-4 py-2">Deadline</th>
+                <th class="border border-gray-300 px-4 py-2">File</th>
+                <th class="border border-gray-300 px-4 py-2">Opsi</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach($data as $item)
+            <tr>
+                <td class="border border-gray-300 px-4 py-2">{{ $item->judul_tugas }}</td>
+                <td class="border border-gray-300 px-4 py-2">{{ $item->nama_mapel }}</td>
+                <td class="border border-gray-300 px-4 py-2">{{ $item->nama_kelas }}</td>
+                <td class="border border-gray-300 px-4 py-2">{{ $item->deskripsi }}</td>
+                <td class="border border-gray-300 px-4 py-2">{{ $item->tanggal_deadline }}</td>
+                <td class="border border-gray-300 px-4 py-2">
+                    @php
+                        $fileName = $item->file_tugas;
+                        $ext = pathinfo($fileName, PATHINFO_EXTENSION);
+                        $icon = match(strtolower($ext)) {
+                            'pdf' => 'https://cdn-icons-png.flaticon.com/512/337/337946.png',
+                            'xls', 'xlsx' => 'https://cdn-icons-png.flaticon.com/512/888/888878.png',
+                            'doc', 'docx' => 'https://cdn-icons-png.flaticon.com/512/281/281760.png',
+                            'mp4' => 'https://cdn-icons-png.flaticon.com/512/136/136534.png',
+                            'jpg', 'jpeg', 'png' => 'https://cdn-icons-png.flaticon.com/512/136/136524.png',
+                            default => null
+                        };
+                    @endphp
+
+                    @if($fileName)
+                        <a href="{{ asset('file_tugas/' . $fileName) }}" class="flex items-center space-x-2 text-blue-600 hover:underline" target="_blank">
+                            @if($icon)
+                                <img src="{{ $icon }}" alt="file icon" class="w-6 h-6">
+                            @endif
+                            <span>{{ $fileName }}</span>
+                        </a>
+                    @else
+                        <span class="text-gray-400 italic">Tidak ada file</span>
+                    @endif
+                </td>
+                <td class="border border-gray-300 px-4 py-2 space-x-2">
+                    <a href="/pamong/tabeltugas/edit/{{ $item->id_tugas }}" class="bg-blue-600 text-white px-3 py-1 rounded">✏️</a>
+                    <form action="/pamong/tabeltugas/hapus/{{ $item->id_tugas }}" method="POST" class="inline" onsubmit="return confirm('Apakah Anda yakin ingin menghapus tugas ini?');">
+                        @csrf
+                        @method('DELETE')
+                        <button type="submit" class="bg-red-500 text-white px-3 py-1 rounded">🗑️</button>
+                    </form>
+                </td>
+            </tr>
+            @endforeach
+        </tbody>
+    </table>
 </div>
 @endsection

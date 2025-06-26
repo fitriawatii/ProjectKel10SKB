@@ -124,40 +124,76 @@
 
 <!-- Service Start -->
 <div class="container-fluid service py-5">
-            <div class="container py-5">
-                <div class="mx-auto text-center wow fadeIn" data-wow-delay="0.1s" style="max-width: 700px;">
-                    <h4 class="text-primary mb-4 border-bottom border-primary border-2 d-inline-block p-2 title-border-radius">Ada apa sih di SKB?</h4>
-                    <h1 class="mb-5 display-3">Program Program di SKB Subang</h1>
-                </div>
-                <div class="container py-5">
-                    <div class="row g-4 text-center">
-                        <div class="col-md-4">
-                        <div class="shadow p-4 bg-white rounded">
-                            <i class="fas fa-balance-scale fa-2x text-primary mb-3"></i>
-                            <h5>Program Kesetaraan</h5>
-                            <p>Lihat informasi mengenai Kesetaraan A, B, dan C</p>
-                        </div>
-                        </div>
-                        <div class="col-md-4">
-                        <div class="shadow p-4 bg-white rounded">
-                            <i class="fas fa-child fa-2x text-primary mb-3"></i>
-                            <h5>Pendidikan Anak Usia Dini</h5>
-                            <p>Lihat informasi mengenai Pendidikan Anak Usia Dini</p>
-                        </div>
-                        </div>
-                        <div class="col-md-4">
-                        <div class="shadow p-4 bg-white rounded">
-                            <i class="fas fa-tools fa-2x text-primary mb-3"></i>
-                            <h5>Program Pelatihan</h5>
-                            <p>Lihat informasi mengenai Program Pelatihan</p>
-                        </div>
-                        </div>
+    <div class="container py-5">
+        <div class="mx-auto text-center wow fadeIn" data-wow-delay="0.1s" style="max-width: 700px;">
+            <h4 class="text-primary mb-4 border-bottom border-primary border-2 d-inline-block p-2 title-border-radius">Ada apa sih di SKB?</h4>
+            <h1 class="mb-5 display-3">Program Program di SKB Subang</h1>
+        </div>
+
+        <div class="container py-5">
+            <div class="row g-4 text-center">
+                <!-- Kartu Program -->
+                <div class="col-md-4">
+                    <div class="shadow p-4 bg-white rounded cursor-pointer" onclick="showModal('Program Kesetaraan', 'Program ini menyediakan pendidikan kesetaraan untuk warga belajar tingkat A, B, dan C.')">
+                        <i class="fas fa-balance-scale fa-2x text-primary mb-3"></i>
+                        <h5>Program Kesetaraan</h5>
+                        <p>Lihat informasi mengenai Kesetaraan A, B, dan C</p>
                     </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="shadow p-4 bg-white rounded cursor-pointer" onclick="showModal('Pendidikan Anak Usia Dini', 'Program ini ditujukan untuk anak-anak usia dini sebagai pondasi pendidikan awal.')">
+                        <i class="fas fa-child fa-2x text-primary mb-3"></i>
+                        <h5>Pendidikan Anak Usia Dini</h5>
+                        <p>Lihat informasi mengenai Pendidikan Anak Usia Dini</p>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="shadow p-4 bg-white rounded cursor-pointer" onclick="showModal('Program Pelatihan', 'Program pelatihan ini mencakup berbagai keterampilan seperti menjahit, komputer, dan lainnya.')">
+                        <i class="fas fa-tools fa-2x text-primary mb-3"></i>
+                        <h5>Program Pelatihan</h5>
+                        <p>Lihat informasi mengenai Program Pelatihan</p>
                     </div>
                 </div>
             </div>
         </div>
-        <!-- Service End -->
+    </div>
+</div>
+<!-- Service End -->
+
+<!-- Modal Start -->
+<div id="programModal" class="position-fixed top-0 start-0 w-100 h-100 bg-dark bg-opacity-75 d-flex align-items-center justify-content-center" style="z-index: 9999; opacity: 0; pointer-events: none; transition: opacity 0.3s ease;">
+    <div class="modal-box bg-white p-4 rounded shadow-lg position-relative" style="max-width: 500px; width: 90%; transform: scale(0.9); transition: transform 0.3s ease;">
+        <button onclick="closeModal()" class="btn-close position-absolute top-0 end-0 m-3" aria-label="Close"></button>
+        <h4 id="modalTitle" class="mb-3"></h4>
+        <p id="modalContent"></p>
+    </div>
+</div>
+<!-- Modal End -->
+
+<!-- JavaScript -->
+<script>
+    function showModal(title, content) {
+        const modal = document.getElementById('programModal');
+        const modalBox = modal.querySelector('.modal-box');
+        document.getElementById('modalTitle').innerText = title;
+        document.getElementById('modalContent').innerText = content;
+
+        modal.style.opacity = '1';
+        modal.style.pointerEvents = 'auto';
+        modalBox.style.transform = 'scale(1)';
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeModal() {
+        const modal = document.getElementById('programModal');
+        const modalBox = modal.querySelector('.modal-box');
+
+        modal.style.opacity = '0';
+        modal.style.pointerEvents = 'none';
+        modalBox.style.transform = 'scale(0.9)';
+        document.body.style.overflow = '';
+    }
+</script>
 
 
         <!-- About Start -->

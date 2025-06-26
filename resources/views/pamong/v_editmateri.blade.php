@@ -11,6 +11,19 @@
                 Kembali
             </a>
 
+            {{-- Notifikasi sukses dan error --}}
+            @if(session('success'))
+                <div class="mb-4 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded">
+                    {{ session('success') }}
+                </div>
+            @endif
+
+            @if(session('error'))
+                <div class="mb-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+                    {{ session('error') }}
+                </div>
+            @endif
+
             <form action="{{ route('update.materi', ['id_materi' => $materi->id_materi]) }}" method="POST" enctype="multipart/form-data">
                 @csrf
 
@@ -34,10 +47,9 @@
                     <label for="mapel" class="block font-semibold mb-1">Mapel</label>
                     <select name="id_mapel" class="w-full border border-gray-300 p-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-400" required>
                         <option value="">Pilih Mapel</option>
-                            @foreach($mapel as $m)
-                                <option value="{{ $m->id_mapel }}">{{ $m->mapel }}</option>
-                            @endforeach
-                        <!-- Tambahkan mapel lain jika perlu -->
+                        @foreach($mapel as $m)
+                            <option value="{{ $m->id_mapel }}">{{ $m->nama_mapel }}</option>
+                        @endforeach
                     </select>
                     @error('id_mapel')
                         <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
@@ -48,10 +60,9 @@
                     <label for="kelas" class="block font-semibold mb-1">Kelas</label>
                     <select name="id_kelas" class="w-full border border-gray-300 p-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-400" required>
                         <option value="">Pilih Kelas</option>
-                            @foreach($kelas as $k)
-                                <option value="{{ $k->id_kelas }}">{{ $k->kelas }}</option>
-                            @endforeach
-                        <!-- Tambahkan kelas lainnya -->
+                        @foreach($kelas as $k)
+                            <option value="{{ $k->id_kelas }}">{{ $k->nama_kelas }}</option>
+                        @endforeach
                     </select>
                     @error('id_kelas')
                         <p class="text-red-500 text-sm mt-1">{{ $message }}</p>

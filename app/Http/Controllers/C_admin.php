@@ -1,7 +1,7 @@
 <?php
 
 namespace App\Http\Controllers;
-
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -15,41 +15,98 @@ class C_admin extends Controller
         $this->M_admin = new M_admin();
     }
 
+
     public function index(){
         return view('admin.v_dashboard');
     }
 
-    public function indexsiswa(){
-        $kelas = DB::table('tb_kelas')->select('id_kelas', 'kelas')->get();
-        $dataSiswa = DB::table('tb_siswa')
+    public function indexsiswa(Request $request)
+{
+    $kelas = DB::table('tb_kelas')->select('id_kelas', 'nama_kelas')->get();
+
+    $query = DB::table('tb_siswa')
         ->join('tb_kelas', 'tb_siswa.id_kelas', '=', 'tb_kelas.id_kelas')
-        ->select('tb_siswa.*', 'tb_kelas.kelas')
-        ->get();
-        return view('admin.v_tabelsiswa', compact('kelas', 'dataSiswa'));
+        ->select('tb_siswa.*', 'tb_kelas.nama_kelas as kelas');
+
+    if ($request->has('cari') && $request->cari != '') {
+        $query->where(function ($q) use ($request) {
+            $q->where('tb_siswa.nama_lengkap', 'like', '%' . $request->cari . '%')
+              ->orWhere('tb_siswa.nisn', 'like', '%' . $request->cari . '%');
+        });
     }
+
+    $dataSiswa = $query->get();
+
+    return view('admin.v_tabelsiswa', compact('dataSiswa', 'kelas'));
+}
+
+    public function detail($id)
+{
+    $siswa = DB::table('tb_siswa')
+        ->leftJoin('tb_kelas', 'tb_siswa.id_kelas', '=', 'tb_kelas.id_kelas')
+        ->leftJoin('tb_paket', 'tb_siswa.id_paket', '=', 'tb_paket.id_paket')
+        ->select('tb_siswa.*', 'tb_kelas.nama_kelas as kelas', 'tb_paket.nama_paket as paket')
+        ->where('tb_siswa.id_siswa', $id)
+        ->first();
+
+    return view('admin.v_detailsiswa', compact('siswa'));
+}
+
+
     
-    public function indexpamong(){
-        $datapamong = DB::table('tb_pamong')->get();
-        return view('admin.v_tabelpamong', compact('datapamong'));
+    public function indexpamong(Request $request)
+{
+    $cari = $request->input('cari');
+
+    $query = DB::table('tb_pamong')
+        ->join('tb_mapel', 'tb_pamong.id_mapel', '=', 'tb_mapel.id_mapel')
+        ->select('tb_pamong.*', 'tb_mapel.nama_mapel');
+
+    if ($cari) {
+        $query->where(function ($q) use ($cari) {
+            $q->where('tb_pamong.nama_pamong', 'like', '%' . $cari . '%')
+              ->orWhere('tb_mapel.nama_mapel', 'like', '%' . $cari . '%');
+        });
     }
 
-    public function indexkelas(){
-        $pamong = DB::table('tb_pamong')->select('nip', 'nama')->get();
-        $datakelas = DB::table('tb_kelas')
-        ->leftjoin('tb_pamong', 'tb_kelas.nip', '=', 'tb_pamong.nip')
-        ->select('tb_kelas.*', 'tb_pamong.nama')
+    $datapamong = $query->get();
+
+    return view('admin.v_tabelpamong', compact('datapamong'));
+}
+
+
+
+    public function indexkelas()
+{
+    $datakelas = DB::table('tb_kelas')
+        ->join('tb_paket', 'tb_kelas.id_paket', '=', 'tb_paket.id_paket')
+        ->select('tb_kelas.id_kelas', 'tb_kelas.nama_kelas', 'tb_paket.nama_paket')
         ->get();
-        return view('admin.v_tabelkelas', compact('datakelas', 'pamong'));
+
+    return view('admin.v_tabelkelas', compact('datakelas'));
+}
+
+    public function indexmapel(Request $request)
+{
+    $cari = $request->input('cari');
+
+    $query = DB::table('tb_mapel')
+        ->leftJoin('tb_paket', 'tb_mapel.id_paket', '=', 'tb_paket.id_paket')
+        ->select('tb_mapel.*', 'tb_paket.nama_paket');
+
+    if ($cari) {
+        $query->where(function($q) use ($cari) {
+            $q->where('tb_mapel.nama_mapel', 'like', '%' . $cari . '%')
+              ->orWhere('tb_paket.nama_paket', 'like', '%' . $cari . '%');
+        });
     }
 
-    public function indexmapel(){
-        $pamong = DB::table('tb_pamong')->select('nip', 'nama')->get();
-        $datamapel = DB::table('tb_mapel')
-        ->leftjoin('tb_pamong', 'tb_mapel.nip', '=', 'tb_pamong.nip')
-        ->select('tb_mapel.*', 'tb_pamong.nama')
-        ->get();
-        return view('admin.v_tabelmapel', compact('datamapel', 'pamong'));
-    }
+    $datamapel = $query->get();
+
+    return view('admin.v_tabelmapel', compact('datamapel'));
+}
+
+
 
     public function tambahsiswa(Request $request)
     {
@@ -111,40 +168,74 @@ class C_admin extends Controller
         return redirect('/admin/tabelmateri')->with('success', 'Data Berhasil Ditambahkan.');
     }
 
-    public function tambahpamong(Request $request)
-    {
-        foreach ($request->pamong as $s) {
-            $lastAkun = DB::table('tb_akun')
-            ->select('id_akun')
-            ->orderByDesc('id_akun')
-            ->first();
+    public function tambahPamong()
+{
+    $mapel = DB::table('tb_mapel')->get(); // untuk dropdown
+    return view('admin.v_tambahpamong', compact('mapel'));
+}
 
-            if ($lastAkun) {
-            $lastNumakun = (int) substr($lastAkun->id_akun, 1); // ambil angka setelah 'C'
-            $idAkun = 'A' . str_pad($lastNumakun + 1, 4, '0', STR_PAD_LEFT);
-            } else {
-            $idAkun = 'A0001'; // Kalau belum ada data
-            }
+public function simpanpamong(Request $request)
+{
+    $request->validate([
+        'nama_pamong' => 'required|string|max:100',
+        'id_mapel' => 'required',
+    ]);
 
-            DB::table('tb_akun')->insert([
-                'id_akun' => $idAkun,
-                'username'     => $s['nama'],
-                'password' => bcrypt($s['nip']),
-                'tipe_akun' => 'pamong',
-            ]);
+    DB::table('tb_pamong')->insert([
+        'nama_pamong' => $request->nama_pamong,
+        'id_mapel' => $request->id_mapel,
+        // tanpa id_akun
+    ]);
 
-            DB::table('tb_pamong')->insert([
-                'nip' => $s['nip'],
-                'nama'     => $s['nama'],
-                'jenis_kelamin'   => $s['gender'],
-                'id_akun' => $idAkun,
-            ]);
+    return redirect()->route('admin.pamong')->with('success', 'Data pamong berhasil ditambahkan!');
+}
 
 
-        }
 
-        return redirect('/admin/tabelpamong')->with('success', 'Data Pamong Berhasil Ditambahkan.');
+    // Tampilkan form edit pamong
+   public function editPamong($id)
+{
+    $pamong = DB::table('tb_pamong')->where('id_pamong', $id)->first();
+    $mapel = DB::table('tb_mapel')->get(); // untuk dropdown
+
+    if (!$pamong) {
+        return redirect()->back()->with('error', 'Data pamong tidak ditemukan.');
     }
+
+    return view('admin.v_editpamong', compact('pamong', 'mapel'));
+}
+
+public function update(Request $request, $id)
+{
+    $request->validate([
+        'nama_pamong' => 'required|string|max:100',
+        'id_mapel' => 'required|exists:tb_mapel,id_mapel',
+    ]);
+
+    DB::table('tb_pamong')->where('id_pamong', $id)->update([
+        'nama_pamong' => $request->nama_pamong,
+        'id_mapel' => $request->id_mapel,
+    ]);
+
+    return redirect()->route('admin.pamong')->with('success', 'Data pamong berhasil diperbarui.');
+}
+
+
+public function destroyPamong($id)
+{
+    // Cek apakah data pamong ada
+    $pamong = DB::table('tb_pamong')->where('id_pamong', $id)->first();
+
+    if (!$pamong) {
+        return redirect()->route('admin.pamong')->with('error', 'Data pamong tidak ditemukan.');
+    }
+
+    // Hapus data
+    DB::table('tb_pamong')->where('id_pamong', $id)->delete();
+
+    return redirect()->route('admin.pamong')->with('success', 'Data pamong berhasil dihapus.');
+}
+
 
     public function tambahkelas(Request $request)
     {
@@ -169,81 +260,58 @@ class C_admin extends Controller
         return redirect('/admin/tabelkelas')->with('success', 'Data Kelas Berhasil Ditambahkan.');
     }
 
-    public function tambahmapel(Request $request)
-    {
-        foreach ($request->mapel as $s) {
-        $lastAkun = DB::table('tb_mapel')
-            ->select('id_mapel')
-            ->orderByDesc('id_mapel')
-            ->first();
+    public function createmapel()
+{
+    $paket = DB::table('tb_paket')->get();
+    return view('admin.v_tambahmapel', compact('paket'));
+}
+    // Simpan mapel baru
+   public function storemapel(Request $request)
+{
+    $request->validate([
+        'nama_mapel' => 'required',
+        'id_paket' => 'required',
+    ]);
 
-            if ($lastAkun) {
-            $lastNumakun = (int) substr($lastAkun->id_mapel, 1); // ambil angka setelah 'C'
-            $idmapel = 'M' . str_pad($lastNumakun + 1, 4, '0', STR_PAD_LEFT);
-            } else {
-            $idmapel = 'M0001'; // Kalau belum ada data
-            }
+    DB::table('tb_mapel')->insert([
+        'nama_mapel' => $request->nama_mapel,
+        'id_paket' => $request->id_paket,
+    ]);
 
-            DB::table('tb_mapel')->insert([
-                'id_mapel' => $idmapel,
-                'mapel'     => $s['mapel'],
-            ]);
-        }
-        return redirect('/admin/tabelmapel')->with('success', 'Data mapel Berhasil Ditambahkan.');
-    }
+    return redirect()->route('admin.mapel')->with('success', 'Mata Pelajaran berhasil ditambahkan.');
+}
 
-    public function editsiswa($nis)
-    {
-        if (!$this->M_admin->detailDatasiswa($nis)) {
-            abort(404);
-        }
-        $kelas = DB::table('tb_kelas')->select('id_kelas', 'kelas')->get();
-
-        $data = [
-            'siswa' => $this->M_admin->detailDatasiswa($nis)
-        ];
-        return view('admin.v_editsiswa', $data, compact('kelas'));
-    }
-
-    public function editpamong($nip)
-    {
-        if (!$this->M_admin->detailDatapamong($nip)) {
-            abort(404);
-        }
-        $kelas = DB::table('tb_kelas')->select('id_kelas', 'kelas')->get();
-        $mapel = DB::table('tb_mapel')->select('id_mapel', 'mapel')->get();
-
-        $data = [
-            'pamong' => $this->M_admin->detailDatapamong($nip)
-        ];
-        return view('admin.v_editpamong', $data, compact('kelas', 'mapel'));
-    }
-
+    // Tampilkan form edit mapel
     public function editmapel($id_mapel)
-    {
-        if (!$this->M_admin->detailDatamapel($id_mapel)) {
-            abort(404);
+{
+    $mapel = DB::table('tb_mapel')->where('id_mapel', $id_mapel)->first();
+    $paket = DB::table('tb_paket')->get();
+
+    return view('admin.v_editmapel', compact('mapel', 'paket'));
+}
+
+    // Update mapel
+public function updatemapel(Request $request, $id)
+{
+    $request->validate([
+        'nama_mapel' => 'required|string|max:100',
+        'id_paket' => 'required|exists:tb_paket,id_paket',
+    ]);
+
+    DB::table('tb_mapel')->where('id_mapel', $id)->update([
+        'nama_mapel' => $request->nama_mapel,
+        'id_paket' => $request->id_paket,
+    ]);
+
+    return redirect()->route('admin.mapel')->with('success', 'Mata pelajaran berhasil diupdate.');
+}
+
+        public function hapusMapel($id)
+        {
+            DB::table('tb_mapel')->where('id_mapel', $id)->delete();
+            return redirect()->route('admin.mapel')->with('success', 'Data mapel berhasil dihapus.');
         }
-        $pamong = DB::table('tb_pamong')->select('nip', 'nama')->get();
 
-        $data = [
-            'mapel' => $this->M_admin->detailDatamapel($id_mapel)
-        ];
-        return view('admin.v_editmapel', $data, compact('pamong'));
-    }
-
-    public function editkelas($id_kelas)
-    {
-        if (!$this->M_admin->detailDatakelas($id_kelas)) {
-            abort(404);
-        }
-        $pamong = DB::table('tb_pamong')->select('nip', 'nama')->get();
-
-        $data = [
-            'kelas' => $this->M_admin->detailDatakelas($id_kelas)
-        ];
-        return view('admin.v_editkelas', $data, compact('pamong'));
-    }
 
 
     public function updatesiswa($nis)
@@ -271,25 +339,6 @@ class C_admin extends Controller
         return redirect()->route('siswa')->with('pesan', 'Data berhasil diperbarui!');
     }
 
-    public function updatemapel($id_mapel)
-    {
-        Request()->validate([
-            'id_mapel' => 'required',
-            'mapel' => 'required|min:5',
-        ], [
-            'mapel.required' => 'Nama Produk wajib di isi !',
-            'mapel.min' => 'Nama Produk minimal 5 karakter',
-        ]);
-
-        $data = [
-            'id_mapel' => Request()->id_mapel,
-            'mapel' => Request()->mapel,
-            'nip' => Request()->id_pamong,
-        ];
-        $this->M_admin->editDatamapel($id_mapel, $data);
-        
-        return redirect()->route('mapel')->with('pesan', 'Data berhasil diperbarui!');
-    }
 
         public function updatekelas($id_kelas)
         {
@@ -312,47 +361,13 @@ class C_admin extends Controller
         return redirect()->route('kelas')->with('pesan', 'Data berhasil diperbarui!');
     }
 
-        public function updatepamong($nip)
-    {
-        Request()->validate([
-            'nip' => 'required',
-            'nama' => 'required|min:5',
-            'jenis_kelamin' => 'required',
-        ], [
-            'nama.required' => 'Nama Produk wajib di isi !',
-            'nama.min' => 'Nama Produk minimal 5 karakter',
-            'jenis_kelamin.required' => 'jenis_kelamin Produk wajib di isi !',
-        ]);
 
-        $data = [
-            'nip' => Request()->nip,
-            'nama' => Request()->nama,
-            'jenis_kelamin' => Request()->jenis_kelamin,
-        ];
+   public function hapussiswa($id)
+{
+    DB::table('tb_siswa')->where('id_siswa', $id)->delete();
+    return redirect()->route('admin.datasiswa')->with('success', 'Data siswa berhasil dihapus.');
+}
 
-        $this->M_admin->editDatapamong($nip, $data);
-        
-        return redirect()->route('pamong')->with('pesan', 'Data berhasil diperbarui!');
-    }
-
-
-    public function deletesiswa($nis)
-    {
-        // Hapus atau delete foto
-        $siswa = $this->M_admin->detailDatasiswa($nis);
-    
-        $this->M_admin->deleteDatasiswa($nis);
-        return redirect()->route('siswa')->with('success', 'Data Berhasil Dihapus');
-    }
-
-    public function deletepamong($nip)
-    {
-        // Hapus atau delete foto
-        $pamong = $this->M_admin->detailDatapamong($nip);
-    
-        $this->M_admin->deleteDatapamong($nip);
-        return redirect()->route('pamong')->with('success', 'Data Berhasil Dihapus');
-    }
 
     public function deletekelas($id_kelas)
     {
@@ -363,12 +378,161 @@ class C_admin extends Controller
         return redirect()->route('kelas')->with('success', 'Data Berhasil Dihapus');
     }
 
-    public function deletemapel($id_mapel)
-    {
-        // Hapus atau delete foto
-        $mapel = $this->M_admin->detailDatamapel($id_mapel);
-    
-        $this->M_admin->deleteDatamapel($id_mapel);
-        return redirect()->route('mapel')->with('success', 'Data Berhasil Dihapus');
+    //paket
+    public function indexpaket()
+{
+    $datapaket = DB::table('tb_paket')->get();
+    return view('admin.v_tabelpaket', compact('datapaket'));
+}
+
+// Tampilkan form filter laporan nilai
+public function kelolaLaporan()
+{
+    return view('admin.v_kelolalaporan');
+}
+
+
+// Cetak laporan nilai berdasarkan filter
+public function cetakLaporanNilai(Request $request)
+{
+    $request->validate([
+        'id_kelas' => 'required|exists:tb_kelas,id_kelas',
+        'id_mapel' => 'required|exists:tb_mapel,id_mapel',
+    ]);
+
+    $id_tahun_ajaran = DB::table('tb_tahun_ajaran')->where('is_active', 1)->value('id_tahun_ajaran');
+
+    $nilai = DB::table('tb_nilai')
+        ->join('tb_siswa', 'tb_nilai.id_siswa', '=', 'tb_siswa.id_siswa')
+        ->join('tb_tugas', 'tb_nilai.id_tugas', '=', 'tb_tugas.id_tugas')
+        ->where('tb_siswa.id_kelas', $request->id_kelas)
+        ->where('tb_tugas.id_mapel', $request->id_mapel)
+        ->where('tb_tugas.id_tahun_ajaran', $id_tahun_ajaran)
+        ->select('tb_siswa.nama_lengkap', 'tb_siswa.nisn', 'tb_tugas.judul_tugas', 'tb_nilai.nilai', 'tb_nilai.komentar')
+        ->orderBy('tb_siswa.nama_lengkap')
+        ->get();
+
+    return view('admin.v_cetaklaporannilai', [
+        'nilai' => $nilai,
+        'kelas' => DB::table('tb_kelas')->where('id_kelas', $request->id_kelas)->first(),
+        'mapel' => DB::table('tb_mapel')->where('id_mapel', $request->id_mapel)->first(),
+    ]);
+}
+public function laporanPerSiswa(Request $request)
+{
+    $query = DB::table('tb_siswa')
+        ->join('tb_kelas', 'tb_siswa.id_kelas', '=', 'tb_kelas.id_kelas')
+        ->select('tb_siswa.*', 'tb_kelas.nama_kelas');
+
+    if ($request->has('cari')) {
+        $cari = $request->cari;
+        $query->where(function($q) use ($cari) {
+            $q->where('tb_siswa.nama_lengkap', 'like', "%$cari%")
+              ->orWhere('tb_siswa.nisn', 'like', "%$cari%");
+        });
     }
+
+    $siswa = $query->get();
+return view('admin.v_laporansiswa', compact('siswa'));
+
+}
+
+public function cetakPerSiswa($id_siswa)
+{
+    $siswa = DB::table('tb_siswa')
+        ->join('tb_kelas', 'tb_siswa.id_kelas', '=', 'tb_kelas.id_kelas')
+        ->where('tb_siswa.id_siswa', $id_siswa)
+        ->select('tb_siswa.*', 'tb_kelas.nama_kelas')
+        ->first();
+
+    $nilai = DB::table('tb_nilai')
+        ->join('tb_tugas', 'tb_nilai.id_tugas', '=', 'tb_tugas.id_tugas')
+        ->join('tb_mapel', 'tb_tugas.id_mapel', '=', 'tb_mapel.id_mapel')
+        ->where('tb_nilai.id_siswa', $id_siswa)
+        ->select('tb_mapel.nama_mapel', 'tb_tugas.judul_tugas', 'tb_nilai.nilai', 'tb_nilai.komentar')
+        ->get();
+
+    return view('admin.v_cetaklaporansiswa', compact('siswa', 'nilai'));
+}
+
+public function downloadPerSiswa($id_siswa)
+{
+    $siswa = DB::table('tb_siswa')
+        ->join('tb_kelas', 'tb_siswa.id_kelas', '=', 'tb_kelas.id_kelas')
+        ->where('tb_siswa.id_siswa', $id_siswa)
+        ->select('tb_siswa.*', 'tb_kelas.nama_kelas')
+        ->first();
+
+    $nilai = DB::table('tb_nilai')
+        ->join('tb_tugas', 'tb_nilai.id_tugas', '=', 'tb_tugas.id_tugas')
+        ->join('tb_mapel', 'tb_tugas.id_mapel', '=', 'tb_mapel.id_mapel')
+        ->where('tb_nilai.id_siswa', $id_siswa)
+        ->select('tb_mapel.nama_mapel', 'tb_tugas.judul_tugas', 'tb_nilai.nilai', 'tb_nilai.komentar')
+        ->get();
+
+    $pdf = Pdf::loadView('admin.v_cetaklaporansiswa', compact('siswa', 'nilai'));
+    return $pdf->download('laporan_nilai_' . $siswa->nama_lengkap . '.pdf');
+}
+
+public function laporanPerMapel()
+{
+    // Ambil semua mapel yang memiliki tugas
+    $mapelList = DB::table('tb_mapel')
+        ->join('tb_tugas', 'tb_mapel.id_mapel', '=', 'tb_tugas.id_mapel')
+        ->select('tb_mapel.id_mapel', 'tb_mapel.nama_mapel')
+        ->distinct()
+        ->get();
+
+    return view('admin.v_laporanmapel', compact('mapelList'));
+}
+
+public function cetakPerMapel($id_mapel)
+{
+    $mapel = DB::table('tb_mapel')->where('id_mapel', $id_mapel)->first();
+
+    $nilai = DB::table('tb_nilai')
+        ->join('tb_tugas', 'tb_nilai.id_tugas', '=', 'tb_tugas.id_tugas')
+        ->join('tb_siswa', 'tb_nilai.id_siswa', '=', 'tb_siswa.id_siswa')
+        ->join('tb_kelas', 'tb_siswa.id_kelas', '=', 'tb_kelas.id_kelas')
+        ->where('tb_tugas.id_mapel', $id_mapel)
+        ->select(
+            'tb_siswa.nama_lengkap',
+            'tb_kelas.nama_kelas',
+            'tb_tugas.judul_tugas',
+            'tb_nilai.nilai',
+            'tb_nilai.komentar'
+        )
+        ->orderBy('tb_siswa.nama_lengkap')
+        ->get();
+
+    return view('admin.v_cetaklaporanmapel', compact('mapel', 'nilai'));
+}
+
+public function downloadPerMapel($id_mapel)
+{
+    $mapel = DB::table('tb_mapel')->where('id_mapel', $id_mapel)->first();
+
+    $nilai = DB::table('tb_nilai')
+        ->join('tb_tugas', 'tb_nilai.id_tugas', '=', 'tb_tugas.id_tugas')
+        ->join('tb_siswa', 'tb_nilai.id_siswa', '=', 'tb_siswa.id_siswa')
+        ->join('tb_kelas', 'tb_siswa.id_kelas', '=', 'tb_kelas.id_kelas')
+        ->where('tb_tugas.id_mapel', $id_mapel)
+        ->select(
+            'tb_siswa.nama_lengkap',
+            'tb_kelas.nama_kelas',
+            'tb_tugas.judul_tugas',
+            'tb_nilai.nilai',
+            'tb_nilai.komentar'
+        )
+        ->orderBy('tb_siswa.nama_lengkap')
+        ->get();
+
+    $pdf = Pdf::loadView('admin.v_cetaklaporanmapel', compact('mapel', 'nilai'));
+    return $pdf->download('laporan_nilai_' . $mapel->nama_mapel . '.pdf');
+}
+
+
+
+
+
 }

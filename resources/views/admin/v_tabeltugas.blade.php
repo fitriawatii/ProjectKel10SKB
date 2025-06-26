@@ -2,8 +2,21 @@
 
 @section('content')
 <h1 class="text-2xl font-bold mb-6">Data Tugas</h1>
-<div class="bg-white rounded shadow p-6">
 
+{{-- Notifikasi --}}
+@if(session('success'))
+    <div class="mb-4 p-4 bg-green-100 border border-green-400 text-green-700 rounded">
+        {{ session('success') }}
+    </div>
+@endif
+
+@if(session('error'))
+    <div class="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded">
+        {{ session('error') }}
+    </div>
+@endif
+
+<div class="bg-white rounded shadow p-6">
     <div x-data="{ showModal: false, rows: [0] }">
         <!-- Tombol Tambah -->
         <button class="bg-blue-600 text-white px-4 py-2 rounded mb-4" @click="showModal = true">Tambah Tugas</button>
@@ -102,7 +115,7 @@
                     <form action="/admin/tugas/hapus/{{ $tugas->id_tugas }}" method="POST" class="inline">
                         @csrf
                         @method('DELETE')
-                        <button type="submit" class="bg-red-500 text-white px-3 py-1 rounded">🗑️</button>
+                        <button type="submit" class="bg-red-500 text-white px-3 py-1 rounded" onclick="return confirm('Yakin ingin menghapus tugas ini?')">🗑️</button>
                     </form>
                 </td>
             </tr>

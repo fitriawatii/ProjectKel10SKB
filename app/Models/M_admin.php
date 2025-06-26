@@ -8,10 +8,11 @@ use Illuminate\Support\Facades\DB;
 
 class M_admin extends Model
 {
-    public function detailDatasiswa($nis)
-    {
-        return DB::table('tb_siswa')->where('nis', $nis)->first();
-    }
+   public function detailDatasiswa($id)
+{
+    return DB::table('tb_siswa')->where('id_siswa', $id)->first();
+}
+
 
     public function editDatasiswa($nis, $data)
     {
@@ -68,4 +69,27 @@ class M_admin extends Model
     {
         DB::table('tb_mapel')->where('id_mapel', $id_mapel)->delete();
     }
+
+// Ambil semua data paket
+public function allDatapaket()
+{
+    return DB::table('tb_paket')->get();
+}
+
+// Ambil detail 1 data paket (jika perlu)
+public function detailDatapaket($id_paket)
+{
+    return DB::table('tb_paket')->where('id_paket', $id_paket)->first();
+}
+
+public function allDatakelas()
+{
+    return DB::table('tb_kelas')->get();
+}
+
+public function allDatamapel()
+{
+    return DB::table('tb_mapel')->get();
+}
+
 }

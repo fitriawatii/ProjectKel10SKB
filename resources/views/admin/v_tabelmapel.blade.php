@@ -2,71 +2,54 @@
 
 @section('content')
 <h1 class="text-2xl font-bold mb-6">Data Mata Pelajaran</h1>
+
 <div class="bg-white rounded shadow p-6">
-    <div class="mb-4 flex justify-between items-center">
+    <!-- Tombol Tambah dan Form Pencarian -->
+    <div class="flex justify-between items-center mb-4">
+        <a href="{{ route('tambah.mapel') }}" class="bg-blue-600 text-white px-4 py-2 rounded">+ Tambah Mapel</a>
+
+        <form action="{{ route('admin.mapel') }}" method="GET" class="flex">
+            <input type="text" name="cari" placeholder="Cari mapel/paket..." value="{{ request('cari') }}"
+                   class="border rounded-l px-3 py-2 w-64" />
+            <button type="submit" class="bg-gray-700 text-white px-4 rounded-r">Cari</button>
+        </form>
     </div>
-    <div x-data="{ showModal: false }">
-    <!-- Tombol Tambah -->
-    <button class="bg-blue-600 text-white px-4 py-2 rounded mr-2" @click="showModal = true">Tambah</button>
 
-    <!-- Modal -->
-    <div x-show="showModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div class="bg-white w-11/12 max-w-4xl p-6 rounded shadow-lg" @click.outside="showModal = false">
-            <div class="flex justify-between items-center mb-4">
-                <h2 class="text-xl font-semibold">Tambah mapel</h2>
-                <button @click="showModal = false" class="text-gray-500 hover:text-red-600 text-xl">×</button>
-            </div>
-
-            <form action="{{ route('tambah.mapel') }}" method="POST">
-                @csrf
-                <table class="w-full table-auto text-sm mb-4">
-                    <thead class="bg-gray-100">
-                        <tr>
-                            <th class="p-2">Nama Mata Pelajaran</th>
-                        </tr>
-                    </thead>
-                    <tbody x-data="{ rows: [0] }">
-                        <template x-for="(row, index) in rows" :key="index">
-                            <tr>
-                                <td class="p-2"><input type="text" name="mapel[index][mapel]" class="border rounded w-full px-2 py-1" required></td>
-                            </tr>
-                        </template>
-                    </tbody>
-                </table>
-                <div class="flex justify-end space-x-2">
-                    <button type="button" @click="showModal = false" class="bg-gray-300 px-4 py-2 rounded">Cancel</button>
-                    <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">Save</button>
-                </div>
-            </form>
+    <!-- Notifikasi Sukses -->
+    @if(session('success'))
+        <div class="mb-4 text-green-600 font-semibold">
+            {{ session('success') }}
         </div>
-    </div>
-</div>
+    @endif
 
-    <table class="min-w-full table-auto border">
-        <thead class="bg-gray-100 text-left">
+    <!-- Tabel Mata Pelajaran -->
+    <table class="min-w-full table-auto border border-gray-300">
+        <thead class="bg-gray-100">
             <tr>
-                <th class="px-4 py-2">ID Mata Pelajaran</th>
-                <th class="px-4 py-2">Nama Mata Pelajaran</th>
-                <th class="px-4 py-2">Pamong Belajar</th>
-                <th class="px-4 py-2">Action</th>
+                <th class="px-4 py-2 border">No</th>
+                <th class="px-4 py-2 border">Nama Mata Pelajaran</th>
+                <th class="px-4 py-2 border">Nama Paket</th>
+                <th class="px-4 py-2 border">Aksi</th>
             </tr>
         </thead>
         <tbody>
-            @foreach($datamapel as $mapel)
-            <tr class="border-t">
-                <td class="px-4 py-2">{{ $mapel->id_mapel }}</td>
-                <td class="px-4 py-2">{{ $mapel->mapel }}</td>
-                <td class="px-4 py-2">{{ $mapel->nama }}</td>
-                <td class="px-4 py-2 space-x-2">
-                    <a href="/admin/mapel/edit/{{ $mapel->id_mapel }}" class="bg-blue-600 text-white px-3 py-1 rounded">✏️</a>
-                    <form action="/admin/tabelmapel/hapus/{{ $mapel->id_mapel }}" method="POST" class="inline">
-                        @csrf
-                        @method('DELETE')
-                        <button type="submit" class="bg-red-500 text-white px-3 py-1 rounded">🗑️</button>
-                    </form>
-                </td>
-            </tr>
-            @endforeach
+            @forelse ($datamapel as $index => $mapel)
+                <tr class="hover:bg-gray-50">
+                    <td class="border px-4 py-2">{{ $index + 1 }}</td>
+                    <td class="border px-4 py-2">{{ $mapel->nama_mapel }}</td>
+                    <td class="border px-4 py-2">{{ $mapel->nama_paket ?? '-' }}</td>
+                    <td class="border px-4 py-2 space-x-2">
+                        <a href="{{ url('/admin/mapel/edit/' . $mapel->id_mapel) }}" class="bg-yellow-500 text-white px-3 py-1 rounded">✏️ Edit</a>
+                        <a href="{{ route('hapus.mapel', $mapel->id_mapel) }}"
+                           class="bg-red-600 text-white px-3 py-1 rounded"
+                           onclick="return confirm('Yakin ingin menghapus data ini?')">🗑️ Hapus</a>
+                    </td>
+                </tr>
+            @empty
+                <tr>
+                    <td colspan="4" class="text-center py-4">Tidak ada data mata pelajaran.</td>
+                </tr>
+            @endforelse
         </tbody>
     </table>
 </div>

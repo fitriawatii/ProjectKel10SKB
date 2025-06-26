@@ -1,12 +1,12 @@
 <?php
 
 namespace App\Http\Controllers;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Log;
-use App\Models\M_pamong;
 
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Http\Request;
+use App\Models\M_pamong;
+use Carbon\Carbon;
 
 class C_pamong extends Controller
 {
@@ -15,205 +15,448 @@ class C_pamong extends Controller
         $this->M_pamong = new M_pamong();
     }
 
-    public function index(){
-        $id_akun = session('user')['id_akun'] ?? null;
-        $mapel = DB::table('tb_mapel')->select('id_mapel', 'mapel')->get();
-        $mapelSaya = DB::table('tb_pamong')
-        ->join('tb_mapel', 'tb_pamong.nip', '=', 'tb_mapel.nip')
-        ->where('tb_pamong.id_akun', $id_akun)
-        ->select('tb_mapel.mapel')
-        ->get();
-        $kelas = DB::table('tb_kelas')->select('id_kelas', 'kelas')->get();
-        $kelasSaya = DB::table('tb_pamong')
-        ->join('tb_kelas', 'tb_pamong.nip', '=', 'tb_kelas.nip')
-        ->where('tb_pamong.id_akun', $id_akun)
-        ->select('tb_kelas.kelas')
-        ->get();
-        return view('pamong.v_pamonghome', compact('mapelSaya', 'mapel', 'id_akun', 'kelas', 'kelasSaya'));
+    public function dashboard()
+    {
+        $id_akun = session('user')->id_akun;
+        $pamong = DB::table('tb_pamong')->where('id_akun', $id_akun)->first();
+
+        if (!$pamong) {
+            return redirect()->back()->with('error', 'Data pamong tidak ditemukan.');
+        }
+
+        $id_pamong = $pamong->id_pamong;
+
+        $jumlahTugas = DB::table('tb_tugas')
+            ->join('tb_jadwal', function ($join) use ($id_pamong) {
+                $join->on('tb_tugas.id_mapel', '=', 'tb_jadwal.id_mapel')
+                     ->on('tb_tugas.id_kelas', '=', 'tb_jadwal.id_kelas')
+                     ->where('tb_jadwal.id_pamong', $id_pamong);
+            })
+            ->count();
+
+        $jumlahPengumpulan = DB::table('tb_pengumpulan_tugas')
+            ->join('tb_tugas', 'tb_pengumpulan_tugas.id_tugas', '=', 'tb_tugas.id_tugas')
+            ->join('tb_jadwal', function ($join) use ($id_pamong) {
+                $join->on('tb_tugas.id_mapel', '=', 'tb_jadwal.id_mapel')
+                     ->on('tb_tugas.id_kelas', '=', 'tb_jadwal.id_kelas')
+                     ->where('tb_jadwal.id_pamong', $id_pamong);
+            })
+            ->count();
+
+        $jumlahPeserta = DB::table('tb_siswa')->count();
+        $mingguSaatIni = now()->weekOfMonth;
+
+        $jadwalMingguIni = DB::table('tb_jadwal')
+            ->where('id_pamong', $id_pamong)
+            ->where('minggu_ke', $mingguSaatIni)
+            ->join('tb_kelas', 'tb_jadwal.id_kelas', '=', 'tb_kelas.id_kelas')
+            ->join('tb_mapel', 'tb_jadwal.id_mapel', '=', 'tb_mapel.id_mapel')
+            ->select('tb_jadwal.*', 'tb_kelas.nama_kelas', 'tb_mapel.nama_mapel')
+            ->orderBy('tb_jadwal.hari')
+            ->get();
+
+        return view('pamong.v_dashboard', compact('jumlahTugas', 'jumlahPengumpulan', 'jumlahPeserta', 'jadwalMingguIni'));
     }
 
-    public function indexmateri(){
-        $id_akun = session('user')['id_akun'] ?? null;
-        $id_pamong = DB::table('tb_pamong')->where('id_akun', '=', $id_akun)
-        ->value('nip');
-        $kelas = DB::table('tb_kelas')->select('id_kelas', 'kelas')->get();
-        $mapel = DB::table('tb_mapel')->select('id_mapel', 'mapel')->get();
-        $dataMateri = DB::table('tb_materi')
-        ->leftjoin('tb_kelas', 'tb_materi.id_kelas', '=', 'tb_kelas.id_kelas')
-        ->leftjoin('tb_mapel', 'tb_materi.id_mapel', '=', 'tb_mapel.id_mapel')
-        ->where('tb_kelas.nip', '=', $id_pamong)
-        ->where('tb_mapel.nip', '=', $id_pamong)
-        ->select('tb_materi.*', 'tb_mapel.mapel', 'tb_kelas.kelas')
-        ->get();
-        return view('pamong.v_tabelmateri', compact('id_akun', 'id_pamong', 'kelas', 'mapel', 'dataMateri'));
+   public function indexmateri()
+{
+    $id_akun = session('user')->id_akun;
+
+    $pamong = DB::table('tb_pamong')
+        ->where('id_akun', $id_akun)
+        ->select('id_pamong', 'id_mapel')
+        ->first();
+
+    if (!$pamong) {
+        return redirect()->back()->with('error', 'Data pamong tidak ditemukan.');
     }
 
-    public function formtambah(){
-        $id_akun = session('user')['id_akun'] ?? null;
-        $id_pamong = DB::table('tb_pamong')->where('id_akun', '=', $id_akun)
-        ->value('nip');
-        $kelas = DB::table('tb_kelas')->select('id_kelas', 'kelas')->get();
-        $mapel = DB::table('tb_mapel')->select('id_mapel', 'mapel')->get();
-        $dataMateri = DB::table('tb_materi')
-        ->leftjoin('tb_kelas', 'tb_materi.id_kelas', '=', 'tb_kelas.id_kelas')
-        ->leftjoin('tb_mapel', 'tb_materi.id_mapel', '=', 'tb_mapel.id_mapel')
-        ->where('tb_kelas.nip', '=', $id_pamong)
-        ->where('tb_mapel.nip', '=', $id_pamong)
-        ->select('tb_materi.*', 'tb_mapel.mapel', 'tb_kelas.kelas')
+    // Ambil tahun ajaran aktif
+    $tahunAjaran = DB::table('tb_tahun_ajaran')->where('is_active', 1)->first();
+
+
+    // Ambil materi sesuai mapel pamong DAN tahun ajaran aktif
+    $materi = DB::table('tb_materi')
+        ->join('tb_mapel', 'tb_materi.id_mapel', '=', 'tb_mapel.id_mapel')
+        ->join('tb_kelas', 'tb_materi.id_kelas', '=', 'tb_kelas.id_kelas')
+        ->where('tb_materi.id_mapel', $pamong->id_mapel)
+        ->where('tb_materi.id_tahun_ajaran', $tahunAjaran->id_tahun_ajaran)
+        ->select('tb_materi.*', 'tb_mapel.nama_mapel', 'tb_kelas.nama_kelas')
         ->get();
-        return view('pamong.v_tambahmateri', compact('id_akun', 'id_pamong', 'kelas', 'mapel', 'dataMateri'));
+
+    return view('pamong.v_tabelmateri', compact('materi'));
+}
+
+    public function indextugas()
+{
+    $id_akun = session('user')->id_akun;
+
+    // Ambil id_pamong dan id_mapel dari pamong yang login
+    $pamong = DB::table('tb_pamong')
+        ->where('id_akun', $id_akun)
+        ->select('id_pamong', 'id_mapel')
+        ->first();
+
+    if (!$pamong) {
+        return redirect()->back()->with('error', 'Data pamong tidak ditemukan.');
+    }
+
+    // Ambil tahun ajaran aktif
+    $tahunAjaranAktif = DB::table('tb_tahun_ajaran')->where('is_active', 1)->first();
+    if (!$tahunAjaranAktif) {
+        return redirect()->back()->with('error', 'Tahun ajaran aktif tidak ditemukan.');
+    }
+
+    $id_tahun_ajaran = $tahunAjaranAktif->id_tahun_ajaran;
+
+    // Ambil tugas berdasarkan mapel pamong dan tahun ajaran aktif
+    $data = DB::table('tb_tugas')
+        ->join('tb_mapel', 'tb_tugas.id_mapel', '=', 'tb_mapel.id_mapel')
+        ->join('tb_kelas', 'tb_tugas.id_kelas', '=', 'tb_kelas.id_kelas')
+        ->where('tb_tugas.id_mapel', $pamong->id_mapel)
+        ->where('tb_tugas.id_tahun_ajaran', $id_tahun_ajaran)
+        ->select('tb_tugas.*', 'tb_mapel.nama_mapel', 'tb_kelas.nama_kelas')
+        ->orderBy('tb_tugas.created_at', 'desc')
+        ->get();
+
+    return view('pamong.v_tugas', compact('data'));
+}
+
+    public function formtambah() 
+    {
+        $id_akun = session('user')->id_akun;
+        $pamong = DB::table('tb_pamong')->where('id_akun', $id_akun)->first();
+        if (!$pamong) {
+            return redirect()->back()->with('error', 'Data pamong tidak ditemukan.');
+        }
+
+        $id_pamong = $pamong->id_pamong;
+
+        $mapel = DB::table('tb_mapel')
+            ->join('tb_pamong', 'tb_mapel.id_mapel', '=', 'tb_pamong.id_mapel')
+            ->where('tb_pamong.id_pamong', $id_pamong)
+            ->select('tb_mapel.id_mapel', 'tb_mapel.nama_mapel')
+            ->get();
+
+        $kelas = DB::table('tb_pamong_kelas')
+            ->join('tb_kelas', 'tb_pamong_kelas.id_kelas', '=', 'tb_kelas.id_kelas')
+            ->where('tb_pamong_kelas.id_pamong', $id_pamong)
+            ->select('tb_kelas.id_kelas', 'tb_kelas.nama_kelas')
+            ->distinct()
+            ->get();
+
+        $dataMateri = DB::table('tb_materi')
+            ->leftJoin('tb_kelas', 'tb_materi.id_kelas', '=', 'tb_kelas.id_kelas')
+            ->leftJoin('tb_mapel', 'tb_materi.id_mapel', '=', 'tb_mapel.id_mapel')
+            ->select('tb_materi.*', 'tb_mapel.nama_mapel', 'tb_kelas.nama_kelas')
+            ->get();
+
+        return view('pamong.v_tambahmateri', compact('kelas', 'mapel', 'dataMateri'));
+    }
+
+    
+    public function store(Request $request)
+    {
+        $request->validate([
+            'judul_tugas' => 'required|string',
+            'deskripsi' => 'required|string',
+            'id_mapel' => 'required',
+            'id_kelas' => 'required',
+            'tanggal_deadline' => 'required|date',
+            'file_tugas' => 'nullable|file|max:10240',
+        ]);
+
+        $id_akun = session('user')->id_akun;
+        $id_pamong = DB::table('tb_pamong')->where('id_akun', $id_akun)->value('id_pamong');
+
+        $fileName = null;
+        if ($request->hasFile('file_tugas')) {
+            $file = $request->file('file_tugas');
+            $fileName = time() . '_' . $file->getClientOriginalName();
+            $file->move(public_path('file_tugas'), $fileName);
+        }
+
+        $tahunAjaran = DB::table('tb_tahun_ajaran')->where('is_active', 1)->first();
+        $id_tahun_ajaran = $tahunAjaran ? $tahunAjaran->id_tahun_ajaran : null;
+
+        DB::table('tb_tugas')->insert([
+            'judul_tugas' => $request->judul_tugas,
+            'deskripsi' => $request->deskripsi,
+            'id_mapel' => $request->id_mapel,
+            'id_kelas' => $request->id_kelas,
+            'id_pamong' => $id_pamong,
+            'tanggal_deadline' => $request->tanggal_deadline,
+            'file_tugas' => $fileName,
+            'id_tahun_ajaran' => $id_tahun_ajaran,
+            'created_at' => now(),
+            'updated_at' => now()
+        ]);
+
+        return redirect('/pamong/tabeltugas')->with('success', 'Tugas berhasil ditambahkan.');
     }
 
     public function tambahmateri(Request $request)
     {
         $request->validate([
-            'nama_materi' => 'required|string|required',
+            'nama_materi' => 'required|string',
             'id_mapel' => 'required',
             'id_kelas' => 'required',
-            'keterangan_materi' => 'required',
-            'file' => 'file|max:10240',
+            'keterangan_materi' => 'required|string',
+            'file' => 'nullable|file|max:10240',
         ]);
-            $lastmateri = DB::table('tb_materi')
-            ->select('id_materi')
-            ->orderByDesc('id_materi')
-            ->first();
 
-            if ($lastmateri) {
-            $lastNummateri = (int) substr($lastmateri->id_materi, 1); // ambil angka setelah 'C'
-            $idmateri = 'M' . str_pad($lastNummateri + 1, 4, '0', STR_PAD_LEFT);
-            } else {
-            $idmateri = 'M0001'; // Kalau belum ada data
-            }
+        $lastmateri = DB::table('tb_materi')->orderByDesc('id_materi')->first();
 
-            if (Request()->file('file')) {
-            $filemateri = Request()->file('file');
-            $fileNamemateri = $filemateri->getClientOriginalName();
-            $filemateri->move(public_path('materi'), $fileNamemateri);
-
-            DB::table('tb_materi')->insert([
-                'id_materi' => $idmateri,
-                'nama_materi' => $request->nama_materi,
-                'id_mapel'     => $request->id_mapel,
-                'id_kelas'    => $request->id_kelas,
-                'keterangan_materi' => $request->keterangan_materi,
-                'file' => $fileNamemateri,
-            ]);
-            } else {
-            DB::table('tb_materi')->insert([
-                'id_materi' => $idmateri,
-                'nama_materi' => $request->nama_materi,
-                'id_mapel'     => $request->id_mapel,
-                'id_kelas'    => $request->id_kelas,
-                'keterangan_materi' => $request->keterangan_materi,
-            ]);
-            }
-
-        return redirect('/pamong/tabelmateri')->with('success', 'Data Berhasil Ditambahkan.');
-    }
-
-    public function deletemateri($id_materi)
-    {
-        // Hapus atau delete foto
-        $materi = $this->M_pamong->detailDatamateri($id_materi);
-    
-        $this->M_pamong->deleteDatamateri($id_materi);
-        return redirect()->route('materi')->with('success', 'Data Berhasil Dihapus');
-    }
-
-    public function editmateri($id_materi)
-    {
-        if (!$this->M_pamong->detailDatamateri($id_materi)) {
-            abort(404);
+        $fileNamemateri = null;
+        if ($request->hasFile('file')) {
+            $file = $request->file('file');
+            $fileNamemateri = time() . '_' . $file->getClientOriginalName();
+            $file->move(public_path('materi'), $fileNamemateri);
         }
-        $kelas = DB::table('tb_kelas')->select('id_kelas', 'kelas')->get();
-        $mapel = DB::table('tb_mapel')->select('id_mapel', 'mapel')->get();
 
-        $data = [
-            'materi' => $this->M_pamong->detailDatamateri($id_materi)
-        ];
-        return view('pamong.v_editmateri', $data, compact('kelas', 'mapel'));
-    }
+        $tahunAjaran = DB::table('tb_tahun_ajaran')->where('is_active', 1)->first();
+        $id_tahun_ajaran = $tahunAjaran ? $tahunAjaran->id_tahun_ajaran : null;
 
-    public function updatemateri($id_materi)
-    {
-        Request()->validate([
-            'id_materi' => 'required',
-            'nama_materi' => 'required|min:5',
-            'id_mapel' => 'required',
-            'id_kelas' => 'required',
-            'keterangan_materi' => 'required',
-        ], [
-            'nama_materi.required' => 'Nama Produk wajib di isi !',
-            'nama_materi.min' => 'Nama Produk minimal 5 karakter',
+        DB::table('tb_materi')->insert([
+            'nama_materi' => $request->nama_materi,
+            'id_mapel' => $request->id_mapel,
+            'id_kelas' => $request->id_kelas,
+            'keterangan_materi' => $request->keterangan_materi,
+            'file' => $fileNamemateri,
+            'id_tahun_ajaran' => $id_tahun_ajaran,
         ]);
 
-        if (Request()->file('file')) {
-            $filemateri = Request()->file('file');
-            $fileNamemateri = $filemateri->getClientOriginalName();
-            $filemateri->move(public_path('materi'), $fileNamemateri);
+        return redirect('/pamong/tabelmateri')->with('success', 'Materi berhasil ditambahkan.');
+    }
+public function editmateri($id_materi)
+{
+    $id_akun = session('user')->id_akun;
 
-            $data = [
-                'id_materi' => Request()->id_materi,
-                'nama_materi' => Request()->nama_materi,
-                'id_mapel'     => Request()->id_mapel,
-                'id_kelas'    => Request()->id_kelas,
-                'keterangan_materi' => Request()->keterangan_materi,
-                'file' => $fileNamemateri,
-            ];
-            } else {
-            $data = [
-                'id_materi' => Request()->id_materi,
-                'nama_materi' => Request()->nama_materi,
-                'id_mapel'     => Request()->id_mapel,
-                'id_kelas'    => Request()->id_kelas,
-                'keterangan_materi' => Request()->keterangan_materi,
-            ];
-            }
-        $this->M_pamong->editDatamateri($id_materi, $data);
-        
-        return redirect()->route('materi')->with('pesan', 'Data berhasil diperbarui!');
+    // Ambil pamong yang login
+    $pamong = DB::table('tb_pamong')->where('id_akun', $id_akun)->first();
+    if (!$pamong) {
+        return redirect()->back()->with('error', 'Data pamong tidak ditemukan.');
     }
 
-    public function formTugas()
-{
-    $mapel = DB::table('tb_mapel')->get();
-    $kelas = DB::table('tb_kelas')->get();
+    $id_pamong = $pamong->id_pamong;
 
-    return view('pamong.tambahtugas', compact('mapel', 'kelas'));
-}
+    // Ambil materi yang akan diedit
+    $materi = DB::table('tb_materi')->where('id_materi', $id_materi)->first();
 
-public function tugas()
-{
-    $dataTugas = DB::table('tb_tugas')
-        ->leftJoin('tb_mapel', 'tb_tugas.id_mapel', '=', 'tb_mapel.id_mapel')
-        ->leftJoin('tb_kelas', 'tb_tugas.id_kelas', '=', 'tb_kelas.id_kelas')
-        ->select('tb_tugas.*', 'tb_mapel.mapel as mapel', 'tb_kelas.kelas as kelas')
+    // Mapel yang diajar pamong ini
+    $mapel = DB::table('tb_mapel')
+        ->join('tb_pamong', 'tb_mapel.id_mapel', '=', 'tb_pamong.id_mapel')
+        ->where('tb_pamong.id_pamong', $id_pamong)
+        ->select('tb_mapel.id_mapel', 'tb_mapel.nama_mapel')
         ->get();
 
-    return view('pamong.v_tugas', compact('dataTugas'));
+    // Kelas yang diampu pamong ini
+    $kelas = DB::table('tb_pamong_kelas')
+        ->join('tb_kelas', 'tb_pamong_kelas.id_kelas', '=', 'tb_kelas.id_kelas')
+        ->where('tb_pamong_kelas.id_pamong', $id_pamong)
+        ->select('tb_kelas.id_kelas', 'tb_kelas.nama_kelas')
+        ->distinct()
+        ->get();
 
-    $fileName = null;
-    if ($request->hasFile('file_tugas')) {
-        $file = $request->file('file_tugas');
-        $fileName = time() . '_' . $file->getClientOriginalName();
-        $file->move(public_path('tugas'), $fileName);
-    }
-
-    // Buat ID otomatis (bisa diganti dengan UUID atau autoincrement DB jika pakai Eloquent)
-    $last = DB::table('tb_tugas')->latest('id_tugas')->first();
-    $newId = $last ? 'T' . str_pad((int)substr($last->id_tugas, 1) + 1, 4, '0', STR_PAD_LEFT) : 'T0001';
-
-    DB::table('tb_tugas')->insert([
-        'id_tugas' => $newId,
-        'judul_tugas' => $request->judul_tugas,
-        'deskripsi' => $request->deskripsi,
-        'id_mapel' => $request->id_mapel,
-        'id_kelas' => $request->id_kelas,
-        'file_tugas' => $fileName,
-        'tanggal_deadline' => $request->tanggal_deadline,
-    ]);
-
-    return redirect()->route('form.tugas')->with('success', 'Tugas berhasil ditambahkan!');
+    return view('pamong.v_editmateri', compact('materi', 'mapel', 'kelas'));
 }
 
+public function updateMateri(Request $request, $id_materi)
+{
+    $request->validate([
+        'nama_materi' => 'required|string|max:255',
+        'keterangan_materi' => 'required|string',
+        'id_mapel' => 'required|exists:tb_mapel,id_mapel',
+        'id_kelas' => 'required|exists:tb_kelas,id_kelas',
+        'file' => 'nullable|file|mimes:pdf,doc,docx,ppt,pptx,zip,rar|max:20480',
+    ]);
+
+    $materi = DB::table('tb_materi')->where('id_materi', $id_materi)->first();
+    if (!$materi) {
+        return redirect()->back()->with('error', 'Materi tidak ditemukan!');
+    }
+
+    $fileName = $materi->file;
+
+    if ($request->hasFile('file')) {
+        // Hapus file lama
+        if ($fileName && file_exists(public_path('materi/' . $fileName))) {
+            unlink(public_path('materi/' . $fileName));
+        }
+
+        // Simpan file baru
+        $file = $request->file('file');
+        $fileName = time() . '_' . $file->getClientOriginalName();
+        $file->move(public_path('materi'), $fileName);
+    }
+
+    // Update data materi
+    DB::table('tb_materi')->where('id_materi', $id_materi)->update([
+        'nama_materi' => $request->nama_materi,
+        'keterangan_materi' => $request->keterangan_materi,
+        'id_mapel' => $request->id_mapel,
+        'id_kelas' => $request->id_kelas,
+        'file' => $fileName,
+    ]);
+
+    return redirect()->route('materi')->with('success', 'Materi berhasil diperbarui!');
+}
+
+
+    public function formtambahtugas() 
+{
+    $id_akun = session('user')->id_akun;
+
+    // Ambil data pamong berdasarkan id_akun login
+    $pamong = DB::table('tb_pamong')->where('id_akun', $id_akun)->first();
+    if (!$pamong) {
+        return redirect()->back()->with('error', 'Data pamong tidak ditemukan.');
+    }
+
+    $id_pamong = $pamong->id_pamong;
+
+    // Ambil mata pelajaran yang diajar oleh pamong ini
+    $mapel = DB::table('tb_mapel')
+        ->join('tb_pamong', 'tb_mapel.id_mapel', '=', 'tb_pamong.id_mapel')
+        ->where('tb_pamong.id_pamong', $id_pamong)
+        ->select('tb_mapel.id_mapel', 'tb_mapel.nama_mapel')
+        ->get();
+
+    // Ambil kelas yang diampu pamong ini
+    $kelas = DB::table('tb_pamong_kelas')
+        ->join('tb_kelas', 'tb_pamong_kelas.id_kelas', '=', 'tb_kelas.id_kelas')
+        ->where('tb_pamong_kelas.id_pamong', $id_pamong)
+        ->select('tb_kelas.id_kelas', 'tb_kelas.nama_kelas')
+        ->distinct()
+        ->get();
+
+    // (Bagian ini aslinya untuk melihat data materi, tidak dibutuhkan untuk form tambah tugas)
+    $dataMateri = DB::table('tb_materi')
+        ->leftJoin('tb_kelas', 'tb_materi.id_kelas', '=', 'tb_kelas.id_kelas')
+        ->leftJoin('tb_mapel', 'tb_materi.id_mapel', '=', 'tb_mapel.id_mapel')
+        ->select('tb_materi.*', 'tb_mapel.nama_mapel', 'tb_kelas.nama_kelas')
+        ->get();
+
+    // Tampilkan view form tambah materi
+    return view('pamong.v_tambahtugas', compact('kelas', 'mapel', 'dataMateri'));
+}
+
+public function edittugas($id_tugas)
+{
+    $id_akun = session('user')->id_akun;
+
+    // Ambil data pamong berdasarkan akun
+    $pamong = DB::table('tb_pamong')->where('id_akun', $id_akun)->first();
+    if (!$pamong) {
+        return redirect()->back()->with('error', 'Data pamong tidak ditemukan.');
+    }
+
+    $id_pamong = $pamong->id_pamong;
+
+    // Ambil data tugas yang ingin diedit
+    $tugas = DB::table('tb_tugas')->where('id_tugas', $id_tugas)->first();
+
+    // Ambil mapel yang diajarkan pamong
+    $mapel = DB::table('tb_mapel')
+        ->join('tb_pamong', 'tb_mapel.id_mapel', '=', 'tb_pamong.id_mapel')
+        ->where('tb_pamong.id_pamong', $id_pamong)
+        ->select('tb_mapel.id_mapel', 'tb_mapel.nama_mapel')
+        ->get();
+
+    // Ambil kelas yang diampu pamong
+    $kelas = DB::table('tb_pamong_kelas')
+        ->join('tb_kelas', 'tb_pamong_kelas.id_kelas', '=', 'tb_kelas.id_kelas')
+        ->where('tb_pamong_kelas.id_pamong', $id_pamong)
+        ->select('tb_kelas.id_kelas', 'tb_kelas.nama_kelas')
+        ->distinct()
+        ->get();
+
+    return view('pamong.v_edittugas', compact('tugas', 'mapel', 'kelas'));
+}
+
+    public function updateTugas(Request $request, $id_tugas)
+    {
+        $request->validate([
+            'judul_tugas' => 'required',
+            'deskripsi' => 'nullable',
+            'id_mapel' => 'required',
+            'id_kelas' => 'required',
+            'tanggal_deadline' => 'required|date',
+            'file_tugas' => 'nullable|file|mimes:pdf,docx,doc,zip,rar',
+        ]);
+
+        $tugas = DB::table('tb_tugas')->where('id_tugas', $id_tugas)->first();
+        if (!$tugas) {
+            return redirect()->back()->with('error', 'Tugas tidak ditemukan!');
+        }
+
+        $fileName = $tugas->file_tugas;
+        if ($request->hasFile('file_tugas')) {
+            $file = $request->file('file_tugas');
+            $fileName = time() . '_' . $file->getClientOriginalName();
+            $file->move(public_path('file_tugas'), $fileName);
+        }
+
+        DB::table('tb_tugas')->where('id_tugas', $id_tugas)->update([
+            'judul_tugas' => $request->judul_tugas,
+            'deskripsi' => $request->deskripsi,
+            'id_mapel' => $request->id_mapel,
+            'id_kelas' => $request->id_kelas,
+            'tanggal_deadline' => $request->tanggal_deadline,
+            'file_tugas' => $fileName,
+        ]);
+
+        return redirect()->route('tugas')->with('success', 'Tugas berhasil diperbarui!');
+    }
+
+    
+   public function deleteTugas($id_tugas)
+{
+    try {
+        // Cek apakah tugas ada
+        $tugas = DB::table('tb_tugas')->where('id_tugas', $id_tugas)->first();
+        if (!$tugas) {
+            return redirect()->back()->with('error', 'Tugas tidak ditemukan.');
+        }
+
+        // Hapus tugas
+        DB::table('tb_tugas')->where('id_tugas', $id_tugas)->delete();
+        return redirect()->back()->with('success', 'Tugas berhasil dihapus!');
+        
+    } catch (\Illuminate\Database\QueryException $e) {
+        // Jika gagal karena foreign key (pengumpulan tugas masih ada)
+        return redirect()->back()->with('error', 'Tidak bisa menghapus tugas karena masih ada pengumpulan tugas terkait.');
+    }
+}
+
+public function deletemateri($id)
+{
+    // Ambil data materi berdasarkan ID
+    $materi = DB::table('tb_materi')->where('id_materi', $id)->first();
+
+    // Jika materi ditemukan dan memiliki file, hapus file-nya dari folder public/materi
+    if ($materi && $materi->file && file_exists(public_path('materi/' . $materi->file))) {
+        unlink(public_path('materi/' . $materi->file));
+    }
+
+    // Hapus data materi dari database
+    DB::table('tb_materi')->where('id_materi', $id)->delete();
+
+    // Redirect kembali dengan pesan sukses
+    return redirect()->back()->with('success', 'Materi berhasil dihapus.');
+}
+
+public function downloadTugas($filename)
+{
+    $path = public_path('jawaban/' . $filename);
+
+    if (!file_exists($path)) {
+        abort(404, 'File tidak ditemukan.');
+    }
+
+    return response()->download($path);
+}
+
+
+    
 }
