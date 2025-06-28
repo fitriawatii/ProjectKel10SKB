@@ -17,15 +17,25 @@
     </div>
 @endif
 
-<div class="flex justify-between items-center mb-4">
+<div class="flex justify-between items-center mb-4 flex-wrap gap-2">
     <a href="{{ route('akun.tambah') }}" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
         + Tambah Akun
     </a>
 
-    <form action="{{ route('akun.index') }}" method="GET" class="flex">
+    <form action="{{ route('akun.index') }}" method="GET" class="flex flex-wrap items-center gap-2">
+        {{-- Input Pencarian --}}
         <input type="text" name="cari" placeholder="Cari nama/email/role..." value="{{ request('cari') }}"
-               class="border rounded-l px-3 py-2 w-64" />
-        <button type="submit" class="bg-gray-700 text-white px-4 rounded-r">Cari</button>
+               class="border rounded px-3 py-2 w-64" />
+
+        {{-- Dropdown Role --}}
+        <select name="role" class="border rounded px-3 py-2">
+            <option value="">Semua Role</option>
+            <option value="admin" {{ request('role') == 'admin' ? 'selected' : '' }}>Admin</option>
+            <option value="pamong" {{ request('role') == 'pamong' ? 'selected' : '' }}>Pamong</option>
+            <option value="peserta_didik" {{ request('role') == 'pesertadidik' ? 'selected' : '' }}>Peserta Didik</option>
+        </select>
+
+        <button type="submit" class="bg-gray-700 text-white px-4 py-2 rounded">Filter</button>
     </form>
 </div>
 

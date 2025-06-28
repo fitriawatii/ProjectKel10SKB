@@ -21,6 +21,7 @@
                 <th class="px-4 py-2">Nama Lengkap</th>
                 <th class="px-4 py-2">Jenis Kelamin</th>
                 <th class="px-4 py-2">Kelas</th>
+                <th class="px-4 py-2">Paket</th>
                 <th class="px-4 py-2">Opsi</th>
             </tr>
         </thead>
@@ -31,6 +32,7 @@
                 <td class="px-4 py-2">{{ $siswa->nama_lengkap }}</td>
                 <td class="px-4 py-2">{{ $siswa->jenis_kelamin }}</td>
                 <td class="px-4 py-2">{{ $siswa->kelas }}</td>
+                <td class="px-4 py-2">{{ $siswa->paket }}</td> {{-- kolom tambahan --}}
                 <td class="px-4 py-2 flex gap-2">
                     <a href="{{ route('siswa.detail', $siswa->id_siswa) }}" class="bg-green-500 text-white px-3 py-1 rounded">🔍 Detail</a>
 
@@ -44,7 +46,7 @@
             </tr>
             @empty
             <tr>
-                <td colspan="5" class="text-center py-4 text-gray-500 italic">Tidak ada data ditemukan.</td>
+                <td colspan="6" class="text-center py-4 text-gray-500 italic">Tidak ada data ditemukan.</td>
             </tr>
             @endforelse
         </tbody>

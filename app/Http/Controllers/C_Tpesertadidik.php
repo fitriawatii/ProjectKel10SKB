@@ -9,51 +9,59 @@ use Illuminate\Support\Facades\DB;
 class C_Tpesertadidik extends Controller
 {
     public function dashboard()
-    {
-        $id_akun = session('user')->id_akun;
-        $siswa = DB::table('tb_siswa')->where('id_akun', $id_akun)->first();
+{
+    $id_akun = session('user')->id_akun;
+    $siswa = DB::table('tb_siswa')->where('id_akun', $id_akun)->first();
 
-        if (!$siswa) {
-            return redirect()->back()->with('error', 'Data siswa tidak ditemukan.');
-        }
-
-        $id_siswa = $siswa->id_siswa;
-        $id_kelas = $siswa->id_kelas;
-
-        $tahunAjaranAktif = DB::table('tb_tahun_ajaran')->where('is_active', 1)->first();
-
-        $totalTugas = DB::table('tb_tugas')
-            ->where('id_kelas', $id_kelas)
-            ->where('id_tahun_ajaran', $tahunAjaranAktif->id_tahun_ajaran)
-            ->count();
-
-        $totalPengumpulan = DB::table('tb_pengumpulan_tugas')
-            ->where('id_siswa', $id_siswa)
-            ->count();
-
-        $rataRataNilai = DB::table('tb_nilai')
-            ->where('id_siswa', $id_siswa)
-            ->avg('nilai');
-
-        $mingguSaatIni = now()->weekOfMonth;
-
-        $jadwalMingguIni = DB::table('tb_jadwal')
-            ->where('id_kelas', $id_kelas)
-            ->where('minggu_ke', $mingguSaatIni)
-            ->where('id_tahun_ajaran', $tahunAjaranAktif->id_tahun_ajaran)
-            ->join('tb_mapel', 'tb_jadwal.id_mapel', '=', 'tb_mapel.id_mapel')
-            ->join('tb_pamong', 'tb_jadwal.id_pamong', '=', 'tb_pamong.id_pamong')
-            ->select('tb_jadwal.*', 'tb_mapel.nama_mapel', 'tb_pamong.nama_pamong')
-            ->orderBy('tb_jadwal.hari')
-            ->get();
-
-        return view('pesertadidik.v_dashboard', [
-            'totalTugas' => $totalTugas,
-            'totalPengumpulan' => $totalPengumpulan,
-            'rataRataNilai' => round($rataRataNilai, 2),
-            'jadwalMingguIni' => $jadwalMingguIni
-        ]);
+    if (!$siswa) {
+        return redirect()->back()->with('error', 'Data siswa tidak ditemukan.');
     }
+
+    $id_siswa = $siswa->id_siswa;
+    $id_kelas = $siswa->id_kelas;
+
+    $tahunAjaranAktif = DB::table('tb_tahun_ajaran')->where('is_active', 1)->first();
+
+    $totalTugas = DB::table('tb_tugas')
+        ->where('id_kelas', $id_kelas)
+        ->where('id_tahun_ajaran', $tahunAjaranAktif->id_tahun_ajaran)
+        ->count();
+
+    $totalPengumpulan = DB::table('tb_pengumpulan_tugas')
+        ->where('id_siswa', $id_siswa)
+        ->count();
+
+    $rataRataNilai = DB::table('tb_nilai')
+        ->where('id_siswa', $id_siswa)
+        ->avg('nilai');
+
+    $mingguSaatIni = now()->weekOfMonth; // ambil minggu aktif dari tanggal saat ini
+
+    $jadwalMingguIni = DB::table('tb_jadwal')
+        ->join('tb_kelas', 'tb_jadwal.id_kelas', '=', 'tb_kelas.id_kelas')
+        ->join('tb_mapel', 'tb_jadwal.id_mapel', '=', 'tb_mapel.id_mapel')
+        ->join('tb_pamong', 'tb_jadwal.id_pamong', '=', 'tb_pamong.id_pamong')
+        ->select(
+            'tb_jadwal.*',
+            'tb_kelas.nama_kelas as nama_kelas',
+            'tb_mapel.nama_mapel as nama_mapel',
+            'tb_pamong.nama_pamong as nama_pamong'
+        )
+        ->where('tb_jadwal.id_kelas', $id_kelas)
+        ->where('tb_jadwal.id_tahun_ajaran', $tahunAjaranAktif->id_tahun_ajaran)
+        ->where('tb_jadwal.minggu_ke', $mingguSaatIni)
+        ->orderByRaw("FIELD(hari, 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu')")
+        ->orderBy('jam_mulai')
+        ->get();
+
+    return view('pesertadidik.v_dashboard', [
+        'totalTugas' => $totalTugas,
+        'totalPengumpulan' => $totalPengumpulan,
+        'rataRataNilai' => round($rataRataNilai, 2),
+        'jadwalMingguIni' => $jadwalMingguIni
+    ]);
+}
+
 
     public function lihatJadwal()
     {
@@ -122,44 +130,63 @@ class C_Tpesertadidik extends Controller
         return view('pesertadidik.v_materipesertadidik', ['dataMateri' => $data]);
     }
 
-    public function tugas()
-    {
-        $id_akun = session('user')->id_akun ?? null;
-        $siswa = DB::table('tb_siswa')->where('id_akun', $id_akun)->first();
+    public function pilihMapelTugas()
+{
+    $id_akun = session('user')->id_akun;
+    $siswa = DB::table('tb_siswa')->where('id_akun', $id_akun)->first();
 
-        if (!$siswa) {
-            return redirect()->back()->with('error', 'Data siswa tidak ditemukan.');
-        }
+    $mapelList = DB::table('tb_mapel')
+        ->join('tb_jadwal', 'tb_mapel.id_mapel', '=', 'tb_jadwal.id_mapel')
+        ->where('tb_jadwal.id_kelas', $siswa->id_kelas)
+        ->select('tb_mapel.id_mapel', 'tb_mapel.nama_mapel')
+        ->distinct()
+        ->get();
 
-        $id_siswa = $siswa->id_siswa;
-        $id_kelas = $siswa->id_kelas;
-        $tahunAjaranAktif = DB::table('tb_tahun_ajaran')->where('is_active', 1)->first();
+    return view('pesertadidik.v_pilihmapeltugas', compact('mapelList'));
+}
 
-        $dataTugas = DB::table('tb_tugas')
-            ->join('tb_mapel', 'tb_tugas.id_mapel', '=', 'tb_mapel.id_mapel')
-            ->join('tb_kelas', 'tb_tugas.id_kelas', '=', 'tb_kelas.id_kelas')
-            ->leftJoin('tb_nilai', function ($join) use ($id_siswa) {
-                $join->on('tb_tugas.id_tugas', '=', 'tb_nilai.id_tugas')
-                     ->where('tb_nilai.id_siswa', '=', $id_siswa);
-            })
-            ->where('tb_tugas.id_kelas', $id_kelas)
-            ->where('tb_tugas.id_tahun_ajaran', $tahunAjaranAktif->id_tahun_ajaran)
-            ->select('tb_tugas.*', 'tb_mapel.nama_mapel', 'tb_kelas.nama_kelas as kelas', 'tb_nilai.nilai', 'tb_nilai.komentar')
-            ->orderBy('tb_tugas.tanggal_deadline', 'desc')
-            ->get();
+public function tugasPerMapel($id_mapel)
+{
+    $id_akun = session('user')->id_akun ?? null;
+    $siswa = DB::table('tb_siswa')->where('id_akun', $id_akun)->first();
 
-        $pengumpulan = DB::table('tb_pengumpulan_tugas')
-            ->where('id_siswa', $id_siswa)
-            ->get()
-            ->keyBy('id_tugas');
-
-        $tugasDikumpulkan = [];
-        foreach ($pengumpulan as $p) {
-            $tugasDikumpulkan[$p->id_tugas] = $p->file_pengumpulan;
-        }
-
-        return view('pesertadidik.v_tugaspesertadidik', compact('dataTugas', 'tugasDikumpulkan'));
+    if (!$siswa) {
+        return redirect()->back()->with('error', 'Data siswa tidak ditemukan.');
     }
+
+    $id_siswa = $siswa->id_siswa;
+    $id_kelas = $siswa->id_kelas;
+    $tahunAjaranAktif = DB::table('tb_tahun_ajaran')->where('is_active', 1)->first();
+
+    $dataTugas = DB::table('tb_tugas')
+        ->join('tb_mapel', 'tb_tugas.id_mapel', '=', 'tb_mapel.id_mapel')
+        ->where('tb_tugas.id_kelas', $id_kelas)
+        ->where('tb_tugas.id_tahun_ajaran', $tahunAjaranAktif->id_tahun_ajaran)
+        ->where('tb_tugas.id_mapel', $id_mapel)
+        ->leftJoin('tb_nilai', function ($join) use ($id_siswa) {
+            $join->on('tb_tugas.id_tugas', '=', 'tb_nilai.id_tugas')
+                ->where('tb_nilai.id_siswa', '=', $id_siswa);
+        })
+        ->select('tb_tugas.*', 'tb_mapel.nama_mapel', 'tb_nilai.nilai', 'tb_nilai.komentar')
+        ->orderBy('tb_tugas.tanggal_deadline', 'desc')
+        ->get();
+
+    $pengumpulan = DB::table('tb_pengumpulan_tugas')
+        ->where('id_siswa', $id_siswa)
+        ->get()
+        ->keyBy('id_tugas');
+
+    $tugasDikumpulkan = [];
+    foreach ($pengumpulan as $p) {
+        $tugasDikumpulkan[$p->id_tugas] = $p->file_pengumpulan;
+    }
+
+    return view('pesertadidik.v_tugaspermapel', [
+        'dataTugas' => $dataTugas,
+        'tugasDikumpulkan' => $tugasDikumpulkan
+    ]);
+}
+
 
 
 

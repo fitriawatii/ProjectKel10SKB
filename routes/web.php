@@ -182,6 +182,9 @@ Route::get('/pamong/tabeltugas', [C_pamong::class, 'indextugas'])->name('tugas')
 Route::get('/pamong/tabeltugas/tambah', [C_pamong::class, 'formtambahtugas']);
 Route::get('/tugas/{id}/edit', [C_pamong::class, 'edit'])->name('tugas.edit');
 Route::delete('/pamong/tabeltugas/hapus/{id}', [C_pamong::class, 'deletetugas'])->name('tugas.delete');
+Route::get('/tugas/mapel', [C_TPesertaDidik::class, 'pilihMapelTugas'])->name('tugas.mapel');
+Route::get('/tugas/mapel/{id_mapel}', [C_TPesertaDidik::class, 'tugasPerMapel'])->name('tugas.permapel');
+
 
 
 
@@ -215,7 +218,7 @@ Route::get('/peserta/materi/{id_mapel}', [C_TPesertaDidik::class, 'materiPerMape
 
 
     // Tugas
-    Route::get('/peserta/tugas', [C_Tpesertadidik::class, 'tugas'])->name('peserta.tugas');
+    Route::get('/peserta/tugas', [C_Tpesertadidik::class, 'pilihMapelTugas'])->name('peserta.tugas');
     Route::get('/tugas', [C_TPesertaDidik::class, 'tugas'])->name('pesertadidik.tugas');
     Route::post('/kirim-tugas', [C_TPesertaDidik::class, 'kirimTugas'])->name('pesertadidik.kirimTugas');
 

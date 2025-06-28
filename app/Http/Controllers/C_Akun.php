@@ -10,18 +10,26 @@ class C_Akun extends Controller
 {
     public function index(Request $request)
 {
-    $cari = $request->input('cari');
+    $query = DB::table('tb_akun');
 
-    $akun = DB::table('tb_akun')
-        ->when($cari, function ($query) use ($cari) {
-            $query->where('nama', 'like', '%' . $cari . '%')
-                  ->orWhere('email', 'like', '%' . $cari . '%')
-                  ->orWhere('role', 'like', '%' . $cari . '%');
-        })
-        ->get();
+    if ($request->filled('cari')) {
+        $search = $request->cari;
+        $query->where(function ($q) use ($search) {
+            $q->where('nama', 'like', "%$search%")
+              ->orWhere('email', 'like', "%$search%")
+              ->orWhere('role', 'like', "%$search%");
+        });
+    }
+
+    if ($request->filled('role')) {
+        $query->where('role', $request->role);
+    }
+
+    $akun = $query->get();
 
     return view('admin.v_akun', compact('akun'));
 }
+
 
 
     public function formTambah()
@@ -45,22 +53,17 @@ public function simpan(Request $request)
         'role' => $request->role,
     ]);
 
-    // 2. Jika peserta didik, cari di tb_siswa berdasarkan nama_lengkap
+    // 2. Jika role peserta didik, cari siswa berdasarkan nama dan id_akun masih NULL
     if ($request->role === 'peserta_didik') {
         DB::table('tb_siswa')
             ->where('nama_lengkap', $request->nama)
-            ->update(['id_akun' => $id_akun]);
-    }
-
-    // 3. Jika pamong, bisa ditambahkan juga (opsional)
-    if ($request->role === 'pamong') {
-        DB::table('tb_pamong')
-            ->where('nama_pamong', $request->nama)
+            ->whereNull('id_akun')
             ->update(['id_akun' => $id_akun]);
     }
 
     return redirect('/akun')->with('success', 'Akun berhasil ditambahkan.');
 }
+
 
 
 public function hapus($id_akun)
