@@ -4,31 +4,44 @@
 <h1 class="text-2xl font-bold mb-6">Data Tugas</h1>
 
 <div class="bg-white rounded shadow p-6">
-    <div class="mb-4 flex justify-between items-center">
-        <a class="bg-blue-600 text-white px-4 py-2 rounded mr-2" href="/pamong/tabeltugas/tambah">Tambah</a>
+    <!-- Tombol Tambah & Dropdown Tahun Ajaran -->
+    <div class="mb-6 flex justify-between items-center">
+        <a class="bg-blue-600 text-white px-4 py-2 rounded" href="/pamong/tabeltugas/tambah">➕ Tambah</a>
+
+        <form method="GET" action="{{ route('pamong.tugas') }}" class="flex items-center space-x-2">
+            <label for="id_tahun_ajaran" class="text-sm text-gray-700">Tahun Ajaran:</label>
+            <select name="id_tahun_ajaran" id="id_tahun_ajaran" onchange="this.form.submit()" class="border px-3 py-2 rounded">
+                @foreach($tahunAjaranList as $ta)
+                    <option value="{{ $ta->id_tahun_ajaran }}" {{ $ta->id_tahun_ajaran == $selectedTahun ? 'selected' : '' }}>
+                        {{ $ta->tahun_ajaran }}
+                    </option>
+                @endforeach
+            </select>
+        </form>
     </div>
 
+    <!-- Tabel Tugas -->
     <table class="min-w-full table-auto border border-gray-300">
         <thead class="bg-gray-100 text-left">
             <tr>
-                <th class="border border-gray-300 px-4 py-2">Judul Tugas</th>
-                <th class="border border-gray-300 px-4 py-2">Mata Pelajaran</th>
-                <th class="border border-gray-300 px-4 py-2">Kelas</th>
-                <th class="border border-gray-300 px-4 py-2">Deskripsi</th>
-                <th class="border border-gray-300 px-4 py-2">Deadline</th>
-                <th class="border border-gray-300 px-4 py-2">File</th>
-                <th class="border border-gray-300 px-4 py-2">Opsi</th>
+                <th class="border px-4 py-2">Judul Tugas</th>
+                <th class="border px-4 py-2">Mata Pelajaran</th>
+                <th class="border px-4 py-2">Kelas</th>
+                <th class="border px-4 py-2">Deskripsi</th>
+                <th class="border px-4 py-2">Deadline</th>
+                <th class="border px-4 py-2">File</th>
+                <th class="border px-4 py-2">Opsi</th>
             </tr>
         </thead>
         <tbody>
-            @foreach($data as $item)
+            @foreach($tugas as $item)
             <tr>
-                <td class="border border-gray-300 px-4 py-2">{{ $item->judul_tugas }}</td>
-                <td class="border border-gray-300 px-4 py-2">{{ $item->nama_mapel }}</td>
-                <td class="border border-gray-300 px-4 py-2">{{ $item->nama_kelas }}</td>
-                <td class="border border-gray-300 px-4 py-2">{{ $item->deskripsi }}</td>
-                <td class="border border-gray-300 px-4 py-2">{{ $item->tanggal_deadline }}</td>
-                <td class="border border-gray-300 px-4 py-2">
+                <td class="border px-4 py-2">{{ $item->judul_tugas }}</td>
+                <td class="border px-4 py-2">{{ $item->nama_mapel }}</td>
+                <td class="border px-4 py-2">{{ $item->nama_kelas }}</td>
+                <td class="border px-4 py-2">{{ $item->deskripsi }}</td>
+                <td class="border px-4 py-2">{{ $item->tanggal_deadline }}</td>
+                <td class="border px-4 py-2">
                     @php
                         $fileName = $item->file_tugas;
                         $ext = pathinfo($fileName, PATHINFO_EXTENSION);
@@ -43,7 +56,7 @@
                     @endphp
 
                     @if($fileName)
-                        <a href="{{ asset('file_tugas/' . $fileName) }}" class="flex items-center space-x-2 text-blue-600 hover:underline" target="_blank">
+                        <a href="{{ asset('file_tugas/' . $fileName) }}" target="_blank" class="flex items-center space-x-2 text-blue-600 hover:underline">
                             @if($icon)
                                 <img src="{{ $icon }}" alt="file icon" class="w-6 h-6">
                             @endif
@@ -53,7 +66,7 @@
                         <span class="text-gray-400 italic">Tidak ada file</span>
                     @endif
                 </td>
-                <td class="border border-gray-300 px-4 py-2 space-x-2">
+                <td class="border px-4 py-2 space-x-2">
                     <a href="/pamong/tabeltugas/edit/{{ $item->id_tugas }}" class="bg-blue-600 text-white px-3 py-1 rounded">✏️</a>
                     <form action="/pamong/tabeltugas/hapus/{{ $item->id_tugas }}" method="POST" class="inline" onsubmit="return confirm('Apakah Anda yakin ingin menghapus tugas ini?');">
                         @csrf

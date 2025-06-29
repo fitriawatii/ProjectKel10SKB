@@ -22,8 +22,11 @@ class C_admin extends Controller
 
     public function indexsiswa(Request $request)
 {
+    // Ambil semua data kelas dan paket untuk dropdown filter
     $kelas = DB::table('tb_kelas')->select('id_kelas', 'nama_kelas')->get();
+    $paket = DB::table('tb_paket')->select('id_paket', 'nama_paket')->get();
 
+    // Query utama untuk ambil data siswa + join ke kelas dan paket
     $query = DB::table('tb_siswa')
         ->join('tb_kelas', 'tb_siswa.id_kelas', '=', 'tb_kelas.id_kelas')
         ->join('tb_paket', 'tb_siswa.id_paket', '=', 'tb_paket.id_paket')
@@ -33,6 +36,7 @@ class C_admin extends Controller
             'tb_paket.nama_paket as paket'
         );
 
+    // Filter berdasarkan pencarian nama / nisn
     if ($request->has('cari') && $request->cari != '') {
         $query->where(function ($q) use ($request) {
             $q->where('tb_siswa.nama_lengkap', 'like', '%' . $request->cari . '%')
@@ -40,10 +44,18 @@ class C_admin extends Controller
         });
     }
 
+    // Filter berdasarkan paket
+    if ($request->has('paket') && $request->paket != '') {
+        $query->where('tb_siswa.id_paket', $request->paket);
+    }
+
+    // Eksekusi query
     $dataSiswa = $query->get();
 
-    return view('admin.v_tabelsiswa', compact('dataSiswa', 'kelas'));
+    // Kirim ke view
+    return view('admin.v_tabelsiswa', compact('dataSiswa', 'kelas', 'paket'));
 }
+
 
 
     public function detail($id)
@@ -465,37 +477,27 @@ public function cetakPerSiswa($id_siswa)
 
 public function downloadPerSiswa($id_siswa)
 {
-    // Ambil data siswa
     $siswa = DB::table('tb_siswa')
         ->join('tb_kelas', 'tb_siswa.id_kelas', '=', 'tb_kelas.id_kelas')
+        ->join('tb_paket', 'tb_kelas.id_paket', '=', 'tb_paket.id_paket')
+        ->select('tb_siswa.*', 'tb_kelas.nama_kelas', 'tb_paket.nama_paket')
         ->where('tb_siswa.id_siswa', $id_siswa)
-        ->select('tb_siswa.*', 'tb_kelas.nama_kelas')
         ->first();
 
-    if (!$siswa) {
-        return redirect()->back()->with('error', 'Data siswa tidak ditemukan.');
-    }
-
-    // Ambil nilai-nilai siswa tersebut
     $nilai = DB::table('tb_nilai')
         ->join('tb_tugas', 'tb_nilai.id_tugas', '=', 'tb_tugas.id_tugas')
         ->join('tb_mapel', 'tb_tugas.id_mapel', '=', 'tb_mapel.id_mapel')
         ->where('tb_nilai.id_siswa', $id_siswa)
-        ->select(
-            'tb_mapel.nama_mapel',
-            'tb_tugas.judul_tugas',
-            'tb_nilai.nilai',
-            'tb_nilai.komentar'
-        )
-        ->orderBy('tb_mapel.nama_mapel')
+        ->select('tb_mapel.nama_mapel', 'tb_tugas.judul_tugas', 'tb_nilai.nilai', 'tb_nilai.komentar')
         ->get();
 
-    // Load PDF
-    $pdf = Pdf::loadView('admin.v_cetaklaporansiswa', compact('siswa', 'nilai'));
+    $totalNilai = $nilai->sum('nilai');
+    $rataRata = $nilai->count() > 0 ? number_format($totalNilai / $nilai->count(), 2) : 0;
 
-    $namaFile = 'laporan_nilai_' . preg_replace('/[^A-Za-z0-9]/', '_', $siswa->nama_lengkap) . '.pdf';
-    return $pdf->download($namaFile);
+    $pdf = Pdf::loadView('admin.v_cetaklaporansiswa', compact('siswa', 'nilai', 'totalNilai', 'rataRata'));
+    return $pdf->download('laporan_nilai_' . $siswa->nama_lengkap . '.pdf');
 }
+
 
 
 public function laporanPerMapel()
@@ -532,9 +534,14 @@ public function cetakPerMapel($id_mapel)
     return view('admin.v_cetaklaporanmapel', compact('mapel', 'nilai'));
 }
 
+// Controller (misalnya di C_admin.php)
 public function downloadPerMapel($id_mapel)
 {
-    $mapel = DB::table('tb_mapel')->where('id_mapel', $id_mapel)->first();
+    $mapel = DB::table('tb_mapel')
+        ->join('tb_paket', 'tb_mapel.id_paket', '=', 'tb_paket.id_paket')
+        ->where('id_mapel', $id_mapel)
+        ->select('tb_mapel.nama_mapel', 'tb_paket.nama_paket')
+        ->first();
 
     $nilai = DB::table('tb_nilai')
         ->join('tb_tugas', 'tb_nilai.id_tugas', '=', 'tb_tugas.id_tugas')
@@ -542,21 +549,39 @@ public function downloadPerMapel($id_mapel)
         ->join('tb_kelas', 'tb_siswa.id_kelas', '=', 'tb_kelas.id_kelas')
         ->where('tb_tugas.id_mapel', $id_mapel)
         ->select(
+            'tb_siswa.id_siswa',
             'tb_siswa.nama_lengkap',
             'tb_kelas.nama_kelas',
-            'tb_tugas.judul_tugas',
-            'tb_nilai.nilai',
-            'tb_nilai.komentar'
+            'tb_nilai.nilai'
         )
-        ->orderBy('tb_siswa.nama_lengkap')
         ->get();
 
-    $pdf = Pdf::loadView('admin.v_cetaklaporanmapel', compact('mapel', 'nilai'));
+    $rekap = [];
+    foreach ($nilai as $n) {
+        $id = $n->id_siswa;
+        if (!isset($rekap[$id])) {
+            $rekap[$id] = [
+                'nama_siswa' => $n->nama_lengkap,
+                'kelas' => $n->nama_kelas,
+                'total_nilai' => 0,
+                'jumlah' => 0
+            ];
+        }
+        $rekap[$id]['total_nilai'] += $n->nilai;
+        $rekap[$id]['jumlah']++;
+    }
+
+    $rekapNilai = array_map(function ($item) {
+        return [
+            'nama_siswa' => $item['nama_siswa'],
+            'kelas' => $item['kelas'],
+            'total_nilai' => $item['total_nilai'],
+            'rata_rata' => $item['jumlah'] > 0 ? $item['total_nilai'] / $item['jumlah'] : 0,
+        ];
+    }, $rekap);
+
+    $pdf = Pdf::loadView('admin.v_cetaklaporanmapel', compact('mapel', 'rekapNilai'));
     return $pdf->download('laporan_nilai_' . $mapel->nama_mapel . '.pdf');
 }
-
-
-
-
 
 }

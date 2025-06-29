@@ -74,7 +74,7 @@ Route::get('login',[C_Login::class,'tampilanlogin']);
 
 Route::get('/pamong/dashboard', [C_pamong::class, 'dashboard'])->name('pamong.dashboard');
 Route::get('/pamongbelajar',[C_Pamongbelajar::class,'index'])->name('pamongbelajar');
-Route::get('/pamongbelajar/materi',[C_Pamongbelajar::class,'materi'])->name('pamongmateri');
+Route::get('/pamongbelajar/materi',[C_Pamongbelajar::class,'materi'])->name('pamong.materi');
 Route::get('/pamongbelajar/detail/{id_pamongbelajar}',[C_Pamongbelajar::class,'detail']);
 Route::get('/pamongbelajar/edit/{id_pamongbelajar}',[C_Pamongbelajar::class,'edit']);
 Route::post('/pamongbelajar/update/{id_pamongbelajar}', [C_Pamongbelajar::class, 'update']);
@@ -178,11 +178,11 @@ Route::delete('/admin/formulirpaud/delete/{id_paud}', [C_kelolaformulirpaud::cla
 
 // Menyimpan tugas baru
 Route::post('/pamong/tabeltugas/store', [C_pamong::class, 'store'])->name('tugas.store');
-Route::get('/pamong/tabeltugas', [C_pamong::class, 'indextugas'])->name('tugas');
+Route::get('/pamong/tabeltugas', [C_pamong::class, 'indextugas'])->name('pamong.tugas');
 Route::get('/pamong/tabeltugas/tambah', [C_pamong::class, 'formtambahtugas']);
 Route::get('/tugas/{id}/edit', [C_pamong::class, 'edit'])->name('tugas.edit');
 Route::delete('/pamong/tabeltugas/hapus/{id}', [C_pamong::class, 'deletetugas'])->name('tugas.delete');
-Route::get('/tugas/mapel', [C_TPesertaDidik::class, 'pilihMapelTugas'])->name('tugas.mapel');
+Route::get('/tugas/mapel', [C_TPesertaDidik::class, 'pilihMapelTugas'])->name('pesertadidik.pilihmapel.tugas');
 Route::get('/tugas/mapel/{id_mapel}', [C_TPesertaDidik::class, 'tugasPerMapel'])->name('tugas.permapel');
 
 
@@ -212,6 +212,7 @@ Route::get('/peserta/materi', [C_TPesertaDidik::class, 'daftarMapel'])->name('ma
 
 // Menampilkan materi berdasarkan mapel yang dipilih
 Route::get('/peserta/materi/{id_mapel}', [C_TPesertaDidik::class, 'materiPerMapel'])->name('materi.permapel');
+Route::get('/materi/pilihmapel', [C_Tpesertadidik::class, 'daftarMapel'])->name('pesertadidik.pilihmapel.materi');
 
 
 

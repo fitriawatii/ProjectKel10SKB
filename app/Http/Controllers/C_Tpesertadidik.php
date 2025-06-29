@@ -130,19 +130,27 @@ class C_Tpesertadidik extends Controller
         return view('pesertadidik.v_materipesertadidik', ['dataMateri' => $data]);
     }
 
-    public function pilihMapelTugas()
+    public function pilihMapelTugas(Request $request)
 {
     $id_akun = session('user')->id_akun;
     $siswa = DB::table('tb_siswa')->where('id_akun', $id_akun)->first();
 
+    // Ambil semua tahun ajaran untuk dropdown
+    $tahunAjaranList = DB::table('tb_tahun_ajaran')->orderBy('id_tahun_ajaran', 'desc')->get();
+
+    // Tahun ajaran yang dipilih, default ke tahun aktif
+    $selectedTahun = $request->id_tahun_ajaran ?? DB::table('tb_tahun_ajaran')->where('is_active', 1)->value('id_tahun_ajaran');
+
+    // Ambil mapel berdasarkan kelas siswa dan tahun ajaran (dari jadwal)
     $mapelList = DB::table('tb_mapel')
         ->join('tb_jadwal', 'tb_mapel.id_mapel', '=', 'tb_jadwal.id_mapel')
         ->where('tb_jadwal.id_kelas', $siswa->id_kelas)
+        ->where('tb_jadwal.id_tahun_ajaran', $selectedTahun)
         ->select('tb_mapel.id_mapel', 'tb_mapel.nama_mapel')
         ->distinct()
         ->get();
 
-    return view('pesertadidik.v_pilihmapeltugas', compact('mapelList'));
+    return view('pesertadidik.v_pilihmapeltugas', compact('mapelList', 'tahunAjaranList', 'selectedTahun'));
 }
 
 public function tugasPerMapel($id_mapel)
@@ -156,6 +164,8 @@ public function tugasPerMapel($id_mapel)
 
     $id_siswa = $siswa->id_siswa;
     $id_kelas = $siswa->id_kelas;
+    $tanggalDaftar = $siswa->tanggal_daftar;
+
     $tahunAjaranAktif = DB::table('tb_tahun_ajaran')->where('is_active', 1)->first();
 
     $dataTugas = DB::table('tb_tugas')
@@ -163,9 +173,10 @@ public function tugasPerMapel($id_mapel)
         ->where('tb_tugas.id_kelas', $id_kelas)
         ->where('tb_tugas.id_tahun_ajaran', $tahunAjaranAktif->id_tahun_ajaran)
         ->where('tb_tugas.id_mapel', $id_mapel)
+        ->whereDate('tb_tugas.created_at', '>=', $tanggalDaftar) // ✅ filter utama
         ->leftJoin('tb_nilai', function ($join) use ($id_siswa) {
             $join->on('tb_tugas.id_tugas', '=', 'tb_nilai.id_tugas')
-                ->where('tb_nilai.id_siswa', '=', $id_siswa);
+                 ->where('tb_nilai.id_siswa', '=', $id_siswa);
         })
         ->select('tb_tugas.*', 'tb_mapel.nama_mapel', 'tb_nilai.nilai', 'tb_nilai.komentar')
         ->orderBy('tb_tugas.tanggal_deadline', 'desc')
@@ -186,7 +197,6 @@ public function tugasPerMapel($id_mapel)
         'tugasDikumpulkan' => $tugasDikumpulkan
     ]);
 }
-
 
 
 
@@ -250,10 +260,6 @@ public function daftarTugas()
     return view('pesertadidik.v_tugas', compact('dataTugas', 'tugasDikumpulkan'));
 }
 
-
-
-
-
     // Ujian untuk peserta didik
     public function ujian()
     {
@@ -271,37 +277,48 @@ public function daftarTugas()
 
         return view('pesertadidik.v_ujianpesertadidik', compact('ujian'));
     }
-    public function daftarMapel()
+   public function daftarMapel(Request $request)
 {
     $id_akun = session('user')->id_akun;
 
-    $id_kelas = DB::table('tb_siswa')
-                ->where('id_akun', $id_akun)
-                ->value('id_kelas');
+    $siswa = DB::table('tb_siswa')->where('id_akun', $id_akun)->first();
+
+    $tahunAjaranList = DB::table('tb_tahun_ajaran')->get();
+    $selectedTahun = $request->id_tahun_ajaran ?? DB::table('tb_tahun_ajaran')->where('is_active', 1)->value('id_tahun_ajaran');
 
     $mapelList = DB::table('tb_mapel')
-                    ->join('tb_materi', 'tb_mapel.id_mapel', '=', 'tb_materi.id_mapel')
-                    ->where('tb_materi.id_kelas', $id_kelas)
-                    ->select('tb_mapel.id_mapel', 'tb_mapel.nama_mapel')
-                    ->distinct()
-                    ->get();
+        ->join('tb_materi', 'tb_mapel.id_mapel', '=', 'tb_materi.id_mapel')
+        ->where('tb_materi.id_kelas', $siswa->id_kelas)
+        ->where('tb_materi.id_tahun_ajaran', $selectedTahun)
+        ->select('tb_mapel.id_mapel', 'tb_mapel.nama_mapel')
+        ->distinct()
+        ->get();
 
-    return view('pesertadidik.v_pilihmapel', compact('mapelList'));
+    return view('pesertadidik.v_pilihmapelmateri', compact('mapelList', 'tahunAjaranList', 'selectedTahun'));
 }
 
-public function materiPerMapel($id_mapel)
+public function materiPerMapel($id_mapel, Request $request)
 {
     $id_akun = session('user')->id_akun;
+    $siswa = DB::table('tb_siswa')->where('id_akun', $id_akun)->first();
 
-    $id_kelas = DB::table('tb_siswa')
-                ->where('id_akun', $id_akun)
-                ->value('id_kelas');
+    if (!$siswa) {
+        return redirect()->back()->with('error', 'Data siswa tidak ditemukan.');
+    }
+
+    $selectedTahun = $request->id_tahun_ajaran ?? DB::table('tb_tahun_ajaran')
+        ->where('is_active', 1)
+        ->value('id_tahun_ajaran');
 
     $materiList = DB::table('tb_materi')
-                ->where('id_kelas', $id_kelas)
-                ->where('id_mapel', $id_mapel)
-                ->get();
+        ->where('id_kelas', $siswa->id_kelas)
+        ->where('id_mapel', $id_mapel)
+        ->where('id_tahun_ajaran', $selectedTahun)
+        ->where('created_at', '>=', $siswa->tanggal_daftar) // batas akses berdasarkan tanggal daftar
+        ->get();
 
     return view('pesertadidik.v_materi', compact('materiList'));
 }
+
+
 }

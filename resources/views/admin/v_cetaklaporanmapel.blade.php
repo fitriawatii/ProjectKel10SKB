@@ -2,44 +2,35 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Laporan Nilai - {{ $mapel->nama_mapel }}</title>
+    <title>Laporan Nilai Siswa</title>
     <style>
-        body {
-            font-family: sans-serif;
-            font-size: 14px;
-            margin: 20px;
-        }
-
-        h2 {
-            text-align: center;
-            margin-bottom: 20px;
-        }
-
+        body { font-family: Arial, sans-serif; margin: 40px; }
+        h2, h3 { text-align: center; margin-bottom: 10px; }
         table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 15px;
+            font-size: 14px;
+            margin-top: 20px;
         }
-
         th, td {
             border: 1px solid #000;
             padding: 8px;
-            text-align: left;
+            text-align: center;
         }
-
         th {
-            background-color: #f0f0f0;
+            background-color: #f2f2f2;
         }
-
-        .footer {
-            margin-top: 30px;
+        .text-right {
             text-align: right;
+            font-size: 12px;
+            margin-top: 30px;
         }
     </style>
 </head>
-<body>
+<body onload="window.print()">
 
-    <h2>Laporan Nilai Siswa<br> Mata Pelajaran: {{ $mapel->nama_mapel }}</h2>
+    <h2>Laporan Nilai Siswa</h2>
+    <h3>Mata Pelajaran: {{ $mapel->nama_mapel }} - {{ $mapel->nama_paket }}</h3>
 
     <table>
         <thead>
@@ -47,31 +38,26 @@
                 <th>No</th>
                 <th>Nama Siswa</th>
                 <th>Kelas</th>
-                <th>Judul Tugas</th>
-                <th>Nilai</th>
-                <th>Komentar</th>
+                <th>Total Nilai</th>
+                <th>Rata-rata</th>
             </tr>
         </thead>
         <tbody>
-            @forelse ($nilai as $index => $item)
-                <tr>
-                    <td>{{ $index + 1 }}</td>
-                    <td>{{ $item->nama_lengkap }}</td>
-                    <td>{{ $item->nama_kelas }}</td>
-                    <td>{{ $item->judul_tugas }}</td>
-                    <td>{{ $item->nilai }}</td>
-                    <td>{{ $item->komentar }}</td>
-                </tr>
-            @empty
-                <tr>
-                    <td colspan="6" style="text-align: center;">Tidak ada data nilai tersedia.</td>
-                </tr>
-            @endforelse
+            @php $no = 1; @endphp
+            @foreach($rekapNilai as $data)
+            <tr>
+                <td>{{ $no++ }}</td>
+                <td>{{ $data['nama_siswa'] }}</td>
+                <td>{{ $data['kelas'] }}</td>
+                <td>{{ $data['total_nilai'] }}</td>
+                <td>{{ number_format($data['rata_rata'], 2) }}</td>
+            </tr>
+            @endforeach
         </tbody>
     </table>
 
-    <div class="footer">
-        <p>Dicetak pada: {{ now()->format('d-m-Y H:i') }}</p>
+    <div class="text-right">
+        Dicetak pada: {{ \Carbon\Carbon::now()->format('d-m-Y H:i') }}
     </div>
 
 </body>

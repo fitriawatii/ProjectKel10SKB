@@ -2,7 +2,21 @@
 
 @section('content')
 <div class="container mt-4">
-    <h2 class="text-lg font-semibold mb-4">Daftar Tugas yang Dikumpulkan</h2>
+    <div class="flex justify-between items-center mb-4">
+        <h2 class="text-lg font-semibold">Daftar Tugas yang Dikumpulkan</h2>
+
+        <!-- Dropdown Tahun Ajaran -->
+        <form method="GET" action="{{ route('pamong.nilai') }}" class="flex items-center space-x-2">
+            <label for="id_tahun_ajaran" class="text-sm text-gray-700">Tahun Ajaran:</label>
+            <select name="id_tahun_ajaran" id="id_tahun_ajaran" onchange="this.form.submit()" class="border px-3 py-1 rounded">
+                @foreach($tahunAjaranList as $ta)
+                    <option value="{{ $ta->id_tahun_ajaran }}" {{ $ta->id_tahun_ajaran == $selectedTahun ? 'selected' : '' }}>
+                        {{ $ta->tahun_ajaran }}
+                    </option>
+                @endforeach
+            </select>
+        </form>
+    </div>
 
     @if(session('success'))
         <div class="bg-green-200 text-green-800 p-2 rounded mb-4">

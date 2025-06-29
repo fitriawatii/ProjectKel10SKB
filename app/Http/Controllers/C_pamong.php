@@ -58,40 +58,35 @@ class C_pamong extends Controller
         return view('pamong.v_dashboard', compact('jumlahTugas', 'jumlahPengumpulan', 'jumlahPeserta', 'jadwalMingguIni'));
     }
 
-   public function indexmateri()
+   public function indexmateri(Request $request)
 {
     $id_akun = session('user')->id_akun;
 
-    $pamong = DB::table('tb_pamong')
-        ->where('id_akun', $id_akun)
-        ->select('id_pamong', 'id_mapel')
-        ->first();
+    $pamong = DB::table('tb_pamong')->where('id_akun', $id_akun)->first();
 
     if (!$pamong) {
         return redirect()->back()->with('error', 'Data pamong tidak ditemukan.');
     }
 
-    // Ambil tahun ajaran aktif
-    $tahunAjaran = DB::table('tb_tahun_ajaran')->where('is_active', 1)->first();
+    $tahunAjaranList = DB::table('tb_tahun_ajaran')->orderBy('tahun_ajaran', 'desc')->get();
+    $selectedTahun = $request->get('id_tahun_ajaran') ?? DB::table('tb_tahun_ajaran')->where('is_active', 1)->value('id_tahun_ajaran');
 
-
-    // Ambil materi sesuai mapel pamong DAN tahun ajaran aktif
     $materi = DB::table('tb_materi')
         ->join('tb_mapel', 'tb_materi.id_mapel', '=', 'tb_mapel.id_mapel')
         ->join('tb_kelas', 'tb_materi.id_kelas', '=', 'tb_kelas.id_kelas')
         ->where('tb_materi.id_mapel', $pamong->id_mapel)
-        ->where('tb_materi.id_tahun_ajaran', $tahunAjaran->id_tahun_ajaran)
+        ->where('tb_materi.id_tahun_ajaran', $selectedTahun)
         ->select('tb_materi.*', 'tb_mapel.nama_mapel', 'tb_kelas.nama_kelas')
         ->get();
 
-    return view('pamong.v_tabelmateri', compact('materi'));
+    return view('pamong.v_tabelmateri', compact('materi', 'tahunAjaranList', 'selectedTahun'));
 }
 
-    public function indextugas()
+
+    public function indextugas(Request $request)
 {
     $id_akun = session('user')->id_akun;
 
-    // Ambil id_pamong dan id_mapel dari pamong yang login
     $pamong = DB::table('tb_pamong')
         ->where('id_akun', $id_akun)
         ->select('id_pamong', 'id_mapel')
@@ -101,26 +96,26 @@ class C_pamong extends Controller
         return redirect()->back()->with('error', 'Data pamong tidak ditemukan.');
     }
 
-    // Ambil tahun ajaran aktif
-    $tahunAjaranAktif = DB::table('tb_tahun_ajaran')->where('is_active', 1)->first();
-    if (!$tahunAjaranAktif) {
-        return redirect()->back()->with('error', 'Tahun ajaran aktif tidak ditemukan.');
-    }
+    // Semua tahun ajaran untuk dropdown
+    $tahunAjaranList = DB::table('tb_tahun_ajaran')->orderBy('tahun_ajaran', 'desc')->get();
 
-    $id_tahun_ajaran = $tahunAjaranAktif->id_tahun_ajaran;
+    // Tahun ajaran terpilih (dari request atau default aktif)
+    $selectedTahun = $request->input('id_tahun_ajaran') ?? DB::table('tb_tahun_ajaran')->where('is_active', 1)->value('id_tahun_ajaran');
 
-    // Ambil tugas berdasarkan mapel pamong dan tahun ajaran aktif
-    $data = DB::table('tb_tugas')
+    // Ambil tugas berdasarkan tahun ajaran terpilih
+    $tugas = DB::table('tb_tugas')
         ->join('tb_mapel', 'tb_tugas.id_mapel', '=', 'tb_mapel.id_mapel')
         ->join('tb_kelas', 'tb_tugas.id_kelas', '=', 'tb_kelas.id_kelas')
+        ->join('tb_tahun_ajaran', 'tb_tugas.id_tahun_ajaran', '=', 'tb_tahun_ajaran.id_tahun_ajaran')
         ->where('tb_tugas.id_mapel', $pamong->id_mapel)
-        ->where('tb_tugas.id_tahun_ajaran', $id_tahun_ajaran)
-        ->select('tb_tugas.*', 'tb_mapel.nama_mapel', 'tb_kelas.nama_kelas')
-        ->orderBy('tb_tugas.created_at', 'desc')
+        ->where('tb_tugas.id_tahun_ajaran', $selectedTahun)
+        ->select('tb_tugas.*', 'tb_mapel.nama_mapel', 'tb_kelas.nama_kelas', 'tb_tahun_ajaran.tahun_ajaran')
+        ->orderBy('tb_tugas.tanggal_deadline', 'desc')
         ->get();
 
-    return view('pamong.v_tugas', compact('data'));
+    return view('pamong.v_tugas', compact('tugas', 'tahunAjaranList', 'selectedTahun'));
 }
+
 
     public function formtambah() 
     {

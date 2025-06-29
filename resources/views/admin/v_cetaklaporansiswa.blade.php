@@ -43,6 +43,11 @@
         .text-center {
             text-align: center;
         }
+
+        .summary {
+            font-weight: bold;
+            background-color: #f9f9f9;
+        }
     </style>
 </head>
 <body onload="window.print()">
@@ -53,6 +58,7 @@
         <p><strong>Nama:</strong> {{ $siswa->nama_lengkap }}</p>
         <p><strong>NISN:</strong> {{ $siswa->nisn }}</p>
         <p><strong>Kelas:</strong> {{ $siswa->nama_kelas }}</p>
+        <p><strong>Paket:</strong> {{ $siswa->nama_paket }}</p>
     </div>
 
     <table>
@@ -66,6 +72,11 @@
             </tr>
         </thead>
         <tbody>
+            @php
+                $total = 0;
+                $count = count($nilai);
+            @endphp
+
             @forelse ($nilai as $i => $n)
             <tr>
                 <td class="text-center">{{ $i + 1 }}</td>
@@ -74,11 +85,25 @@
                 <td class="text-center">{{ $n->nilai }}</td>
                 <td>{{ $n->komentar }}</td>
             </tr>
+            @php $total += $n->nilai; @endphp
             @empty
             <tr>
                 <td colspan="5" class="text-center">Tidak ada data nilai ditemukan.</td>
             </tr>
             @endforelse
+
+            @if($count > 0)
+            <tr class="summary">
+                <td colspan="3" class="text-center">Total Nilai</td>
+                <td class="text-center">{{ $total }}</td>
+                <td></td>
+            </tr>
+            <tr class="summary">
+                <td colspan="3" class="text-center">Rata-rata</td>
+                <td class="text-center">{{ number_format($total / $count, 2) }}</td>
+                <td></td>
+            </tr>
+            @endif
         </tbody>
     </table>
 

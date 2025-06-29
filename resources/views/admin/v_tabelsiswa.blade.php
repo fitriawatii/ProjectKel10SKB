@@ -4,13 +4,28 @@
 <h1 class="text-2xl font-bold mb-6">Data Pesertadidik</h1>
 
 <div class="bg-white rounded shadow p-6">
+    <!-- Form Cari & Filter Paket -->
+    <form method="GET" action="{{ route('admin.datasiswa') }}" class="mb-4 flex flex-wrap items-center justify-between">
+        <!-- Pencarian -->
+        <div class="flex items-center gap-2">
+            <input type="text" name="cari" placeholder="Cari nama atau NISN..."
+                   value="{{ request('cari') }}"
+                   class="border px-3 py-2 rounded w-64" />
+            <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">Cari</button>
+        </div>
 
-    <!-- Form Cari -->
-    <form method="GET" action="{{ route('admin.datasiswa') }}" class="mb-4">
-        <input type="text" name="cari" placeholder="Cari nama atau NISN..."
-               value="{{ request('cari') }}"
-               class="border px-3 py-2 rounded w-1/3">
-        <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded ml-2">Cari</button>
+        <!-- Filter Paket -->
+        <div class="flex items-center gap-2 mt-2 md:mt-0">
+            <label for="paket" class="text-sm font-medium text-gray-700">Filter Paket:</label>
+            <select name="paket" id="paket" onchange="this.form.submit()" class="border px-3 py-2 rounded w-48">
+                <option value="">-- Semua Paket --</option>
+                @foreach($paket as $p)
+                    <option value="{{ $p->id_paket }}" {{ request('paket') == $p->id_paket ? 'selected' : '' }}>
+                        {{ $p->nama_paket }}
+                    </option>
+                @endforeach
+            </select>
+        </div>
     </form>
 
     <!-- Tabel Data Ringkas -->
@@ -32,11 +47,10 @@
                 <td class="px-4 py-2">{{ $siswa->nama_lengkap }}</td>
                 <td class="px-4 py-2">{{ $siswa->jenis_kelamin }}</td>
                 <td class="px-4 py-2">{{ $siswa->kelas }}</td>
-                <td class="px-4 py-2">{{ $siswa->paket }}</td> {{-- kolom tambahan --}}
+                <td class="px-4 py-2">{{ $siswa->paket }}</td>
                 <td class="px-4 py-2 flex gap-2">
                     <a href="{{ route('siswa.detail', $siswa->id_siswa) }}" class="bg-green-500 text-white px-3 py-1 rounded">🔍 Detail</a>
 
-                    <!-- Tombol Hapus -->
                     <form action="{{ route('siswa.hapus', $siswa->id_siswa) }}" method="POST" onsubmit="return confirm('Yakin ingin menghapus data siswa ini?');">
                         @csrf
                         @method('DELETE')

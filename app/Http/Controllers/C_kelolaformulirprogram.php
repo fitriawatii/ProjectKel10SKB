@@ -48,7 +48,7 @@ class C_kelolaformulirprogram extends Controller
         return redirect()->back()->with('warning', 'Siswa dengan NISN ini sudah ada di tb_siswa.');
     }
 
-    // INSERT ke tb_siswa (letakkan di sini!)
+    // INSERT ke tb_siswa (lengkap dengan tanggal_daftar)
     DB::table('tb_siswa')->insert([
         'nisn' => $pendaftar->nisn,
         'nama_lengkap' => $pendaftar->nama_lengkap,
@@ -87,6 +87,8 @@ class C_kelolaformulirprogram extends Controller
 
         'id_kelas' => $pendaftar->id_kelas,
         'id_paket' => $pendaftar->id_paket,
+
+        'tanggal_daftar' => now(), // Tambahkan tanggal saat siswa resmi terdaftar
     ]);
 
     // Update status pendaftar
@@ -96,6 +98,7 @@ class C_kelolaformulirprogram extends Controller
 
     return redirect()->back()->with('success', 'Pendaftar berhasil diterima dan datanya dipindahkan ke Data Peserta Didik.');
 }
+
 
 
     public function create()
