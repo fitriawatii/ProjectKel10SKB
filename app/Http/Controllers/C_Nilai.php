@@ -7,41 +7,34 @@ use Illuminate\Support\Facades\DB;
 
 class C_nilai extends Controller
 {
-    public function index()
+    public function index(Request $request)
 {
     $id_akun = session('user')->id_akun;
 
-    // Ambil id_pamong yang sedang login
-    $id_pamong = DB::table('tb_pamong')
-        ->where('id_akun', $id_akun)
-        ->value('id_pamong');
+    // Ambil pamong
+    $pamong = DB::table('tb_pamong')->where('id_akun', $id_akun)->first();
 
-    // Ambil semua tahun ajaran untuk dropdown
-    $tahunAjaranList = DB::table('tb_tahun_ajaran')->orderBy('tahun_ajaran', 'desc')->get();
+    // Tahun ajaran aktif atau yang dipilih
+    $selectedTahun = $request->id_tahun_ajaran ?? DB::table('tb_tahun_ajaran')
+        ->where('is_active', 1)->value('id_tahun_ajaran');
 
-    // Ambil tahun ajaran dari request jika ada, kalau tidak pakai yang aktif
-    $selectedTahun = request()->id_tahun_ajaran ?? DB::table('tb_tahun_ajaran')->where('is_active', 1)->value('id_tahun_ajaran');
+    // Ambil semua tahun ajaran
+    $tahunAjaranList = DB::table('tb_tahun_ajaran')->get();
 
-    // Query data pengumpulan tugas untuk tugas yang dibuat pamong ini dan tahun ajaran yang dipilih
+    // Ambil tugas yang dikumpulkan + nilai
     $data = DB::table('tb_pengumpulan_tugas')
-        ->join('tb_tugas', function ($join) use ($id_pamong, $selectedTahun) {
-            $join->on('tb_pengumpulan_tugas.id_tugas', '=', 'tb_tugas.id_tugas')
-                ->where('tb_tugas.id_pamong', '=', $id_pamong)
-                ->where('tb_tugas.id_tahun_ajaran', '=', $selectedTahun);
-        })
         ->join('tb_siswa', 'tb_pengumpulan_tugas.id_siswa', '=', 'tb_siswa.id_siswa')
-        ->leftJoin('tb_nilai', function ($join) use ($selectedTahun) {
+        ->join('tb_kelas', 'tb_siswa.id_kelas', '=', 'tb_kelas.id_kelas')
+        ->join('tb_tugas', 'tb_pengumpulan_tugas.id_tugas', '=', 'tb_tugas.id_tugas')
+        ->leftJoin('tb_nilai', function ($join) {
             $join->on('tb_pengumpulan_tugas.id_tugas', '=', 'tb_nilai.id_tugas')
-                ->on('tb_pengumpulan_tugas.id_siswa', '=', 'tb_nilai.id_siswa')
-                ->where('tb_nilai.id_tahun_ajaran', '=', $selectedTahun);
+                 ->on('tb_pengumpulan_tugas.id_siswa', '=', 'tb_nilai.id_siswa');
         })
+        ->where('tb_tugas.id_tahun_ajaran', $selectedTahun)
         ->select(
-            'tb_pengumpulan_tugas.id_pengumpulan',
-            'tb_pengumpulan_tugas.id_siswa',
+            'tb_pengumpulan_tugas.*',
             'tb_siswa.nama_lengkap',
-            'tb_pengumpulan_tugas.id_tugas',
-            'tb_pengumpulan_tugas.file_pengumpulan',
-            'tb_pengumpulan_tugas.tanggal_pengumpulan',
+            'tb_kelas.nama_kelas',
             'tb_tugas.judul_tugas',
             'tb_tugas.tanggal_deadline',
             'tb_nilai.nilai',

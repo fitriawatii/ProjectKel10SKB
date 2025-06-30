@@ -28,6 +28,7 @@
         <thead class="bg-gray-200">
             <tr>
                 <th class="p-2 border">Nama Siswa</th>
+                <th class="p-2 border">Kelas</th>
                 <th class="p-2 border">Judul Tugas</th>
                 <th class="p-2 border">Deadline</th>
                 <th class="p-2 border">Tanggal Pengumpulan</th>
@@ -41,6 +42,7 @@
             @forelse($data as $item)
                 <tr class="border-t">
                     <td class="p-2 border">{{ $item->nama_lengkap }}</td>
+                    <td class="p-2 border">{{ $item->nama_kelas }}</td>
                     <td class="p-2 border">{{ $item->judul_tugas }}</td>
                     <td class="p-2 border">{{ \Carbon\Carbon::parse($item->tanggal_deadline)->format('d-m-Y') }}</td>
                     <td class="p-2 border">{{ \Carbon\Carbon::parse($item->tanggal_pengumpulan)->format('d-m-Y H:i') }}</td>
@@ -66,7 +68,7 @@
                 </tr>
             @empty
                 <tr>
-                    <td colspan="8" class="text-center text-gray-500 p-4 italic">Belum ada pengumpulan tugas.</td>
+                    <td colspan="9" class="text-center text-gray-500 p-4 italic">Belum ada pengumpulan tugas.</td>
                 </tr>
             @endforelse
         </tbody>
