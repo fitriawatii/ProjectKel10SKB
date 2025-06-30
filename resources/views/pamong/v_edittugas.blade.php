@@ -7,8 +7,8 @@
             <h4 class="text-lg font-semibold">Edit Tugas</h4>
         </div>
         <div class="px-6 py-4">
-            <a href="{{ route('tugas') }}" class="inline-block mb-4 text-white bg-red-500 hover:bg-red-600 px-4 py-2 rounded">
-                Kembali
+            <a href="{{ url('/pamong/tabeltugas') }}" class="inline-block mb-4 text-white bg-red-500 hover:bg-red-600 px-4 py-2 rounded">
+                ⬅ Kembali
             </a>
 
             @if(session('success'))
@@ -17,8 +17,9 @@
                 </div>
             @endif
 
-            <form action="{{ url('/pamong/tabeltugas/update/' . $tugas->id_tugas) }}" method="POST" enctype="multipart/form-data">
+            <form action="{{ route('pamong.tugas.update', $tugas->id_tugas) }}" method="POST" enctype="multipart/form-data">
                 @csrf
+                @method('PUT')
 
                 <div class="mb-4">
                     <label for="judul_tugas" class="block font-semibold mb-1">Judul Tugas</label>

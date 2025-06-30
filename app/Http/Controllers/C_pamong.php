@@ -81,7 +81,42 @@ class C_pamong extends Controller
 
     return view('pamong.v_tabelmateri', compact('materi', 'tahunAjaranList', 'selectedTahun'));
 }
+public function materiByKelas(Request $request, $id_kelas)
+{
+    $id_akun = session('user')->id_akun;
 
+    // Ambil id_pamong dari akun
+    $id_pamong = DB::table('tb_pamong')->where('id_akun', $id_akun)->value('id_pamong');
+
+    if (!$id_pamong) {
+        return redirect()->back()->with('error', 'Data pamong tidak ditemukan.');
+    }
+
+    // Cek apakah pamong memang mengajar kelas ini
+    $isValid = DB::table('tb_pamong_kelas')
+        ->where('id_pamong', $id_pamong)
+        ->where('id_kelas', $id_kelas)
+        ->exists();
+
+    if (!$isValid) {
+        return redirect()->back()->with('error', 'Anda tidak memiliki akses ke kelas ini.');
+    }
+
+    // Ambil tahun ajaran aktif atau dari request
+    $tahunAjaranList = DB::table('tb_tahun_ajaran')->orderBy('tahun_ajaran', 'desc')->get();
+    $selectedTahun = $request->get('id_tahun_ajaran') ?? DB::table('tb_tahun_ajaran')->where('is_active', 1)->value('id_tahun_ajaran');
+
+    // Ambil materi berdasarkan kelas dan tahun ajaran
+    $materi = DB::table('tb_materi')
+        ->join('tb_mapel', 'tb_materi.id_mapel', '=', 'tb_mapel.id_mapel')
+        ->join('tb_kelas', 'tb_materi.id_kelas', '=', 'tb_kelas.id_kelas')
+        ->where('tb_materi.id_kelas', $id_kelas)
+        ->where('tb_materi.id_tahun_ajaran', $selectedTahun)
+        ->select('tb_materi.*', 'tb_mapel.nama_mapel', 'tb_kelas.nama_kelas')
+        ->get();
+
+    return view('pamong.v_tabelmateri', compact('materi', 'tahunAjaranList', 'selectedTahun', 'id_kelas'));
+}
 
     public function indextugas(Request $request)
 {
@@ -114,6 +149,37 @@ class C_pamong extends Controller
         ->get();
 
     return view('pamong.v_tugas', compact('tugas', 'tahunAjaranList', 'selectedTahun'));
+}
+
+public function tugasByKelas(Request $request, $id_kelas)
+{
+    $id_akun = session('user')->id_akun;
+
+    $id_pamong = DB::table('tb_pamong')
+        ->where('id_akun', $id_akun)
+        ->value('id_pamong');
+
+    $isValid = DB::table('tb_pamong_kelas')
+        ->where('id_pamong', $id_pamong)
+        ->where('id_kelas', $id_kelas)
+        ->exists();
+
+    if (!$isValid) {
+        return redirect()->back()->with('error', 'Anda tidak memiliki akses ke kelas ini.');
+    }
+
+    $tahunAjaranList = DB::table('tb_tahun_ajaran')->orderBy('tahun_ajaran', 'desc')->get();
+    $selectedTahun = $request->get('id_tahun_ajaran') ?? DB::table('tb_tahun_ajaran')->where('is_active', 1)->value('id_tahun_ajaran');
+
+    $tugas = DB::table('tb_tugas')
+        ->join('tb_mapel', 'tb_tugas.id_mapel', '=', 'tb_mapel.id_mapel')
+        ->join('tb_kelas', 'tb_tugas.id_kelas', '=', 'tb_kelas.id_kelas')
+        ->where('tb_tugas.id_kelas', $id_kelas)
+        ->where('tb_tugas.id_tahun_ajaran', $selectedTahun)
+        ->select('tb_tugas.*', 'tb_mapel.nama_mapel', 'tb_kelas.nama_kelas')
+        ->get();
+
+    return view('pamong.v_tugas', compact('tugas', 'tahunAjaranList', 'selectedTahun', 'id_kelas'));
 }
 
 
@@ -297,6 +363,52 @@ public function updateMateri(Request $request, $id_materi)
     return redirect()->route('materi')->with('success', 'Materi berhasil diperbarui!');
 }
 
+public function pilihKelasMateri()
+{
+    $id_akun = session('user')->id_akun;
+
+    // Ambil id_pamong dari id_akun
+    $id_pamong = DB::table('tb_pamong')
+        ->where('id_akun', $id_akun)
+        ->value('id_pamong');
+
+    if (!$id_pamong) {
+        return redirect()->back()->with('error', 'Data pamong tidak ditemukan.');
+    }
+
+    // Ambil daftar kelas yang diajarkan pamong dari tb_pamong_kelas
+    $kelas = DB::table('tb_kelas')
+        ->join('tb_pamong_kelas', 'tb_kelas.id_kelas', '=', 'tb_pamong_kelas.id_kelas')
+        ->where('tb_pamong_kelas.id_pamong', $id_pamong)
+        ->select('tb_kelas.id_kelas', 'tb_kelas.nama_kelas')
+        ->distinct()
+        ->get();
+
+    return view('pamong.v_pilihkelasmateri', compact('kelas'));
+}
+
+public function pilihKelasTugas()
+{
+    $id_akun = session('user')->id_akun;
+
+    $id_pamong = DB::table('tb_pamong')
+        ->where('id_akun', $id_akun)
+        ->value('id_pamong');
+
+    if (!$id_pamong) {
+        return redirect()->back()->with('error', 'Data pamong tidak ditemukan.');
+    }
+
+    $kelas = DB::table('tb_kelas')
+        ->join('tb_pamong_kelas', 'tb_kelas.id_kelas', '=', 'tb_pamong_kelas.id_kelas')
+        ->where('tb_pamong_kelas.id_pamong', $id_pamong)
+        ->select('tb_kelas.id_kelas', 'tb_kelas.nama_kelas')
+        ->distinct()
+        ->get();
+
+    return view('pamong.v_pilihkelastugas', compact('kelas'));
+}
+
 
     public function formtambahtugas() 
 {
@@ -370,39 +482,40 @@ public function edittugas($id_tugas)
 }
 
     public function updateTugas(Request $request, $id_tugas)
-    {
-        $request->validate([
-            'judul_tugas' => 'required',
-            'deskripsi' => 'nullable',
-            'id_mapel' => 'required',
-            'id_kelas' => 'required',
-            'tanggal_deadline' => 'required|date',
-            'file_tugas' => 'nullable|file|mimes:pdf,docx,doc,zip,rar',
-        ]);
+{
+    $request->validate([
+        'judul_tugas' => 'required',
+        'deskripsi' => 'nullable',
+        'id_mapel' => 'required',
+        'id_kelas' => 'required',
+        'tanggal_deadline' => 'required|date',
+        'file_tugas' => 'nullable|file|mimes:pdf,docx,doc,zip,rar',
+    ]);
 
-        $tugas = DB::table('tb_tugas')->where('id_tugas', $id_tugas)->first();
-        if (!$tugas) {
-            return redirect()->back()->with('error', 'Tugas tidak ditemukan!');
-        }
-
-        $fileName = $tugas->file_tugas;
-        if ($request->hasFile('file_tugas')) {
-            $file = $request->file('file_tugas');
-            $fileName = time() . '_' . $file->getClientOriginalName();
-            $file->move(public_path('file_tugas'), $fileName);
-        }
-
-        DB::table('tb_tugas')->where('id_tugas', $id_tugas)->update([
-            'judul_tugas' => $request->judul_tugas,
-            'deskripsi' => $request->deskripsi,
-            'id_mapel' => $request->id_mapel,
-            'id_kelas' => $request->id_kelas,
-            'tanggal_deadline' => $request->tanggal_deadline,
-            'file_tugas' => $fileName,
-        ]);
-
-        return redirect()->route('tugas')->with('success', 'Tugas berhasil diperbarui!');
+    $tugas = DB::table('tb_tugas')->where('id_tugas', $id_tugas)->first();
+    if (!$tugas) {
+        return redirect()->back()->with('error', 'Tugas tidak ditemukan!');
     }
+
+    $fileName = $tugas->file_tugas;
+    if ($request->hasFile('file_tugas')) {
+        $file = $request->file('file_tugas');
+        $fileName = time() . '_' . $file->getClientOriginalName();
+        $file->move(public_path('file_tugas'), $fileName);
+    }
+
+    DB::table('tb_tugas')->where('id_tugas', $id_tugas)->update([
+        'judul_tugas' => $request->judul_tugas,
+        'deskripsi' => $request->deskripsi,
+        'id_mapel' => $request->id_mapel,
+        'id_kelas' => $request->id_kelas,
+        'tanggal_deadline' => $request->tanggal_deadline,
+        'file_tugas' => $fileName,
+    ]);
+
+    return redirect()->route('pamong.tugas')->with('success', 'Tugas berhasil diperbarui!');
+}
+
 
     
    public function deleteTugas($id_tugas)

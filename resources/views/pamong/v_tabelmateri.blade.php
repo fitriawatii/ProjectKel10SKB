@@ -5,9 +5,12 @@
 
 <div class="bg-white rounded shadow p-6">
 
-    <!-- Tombol Tambah + Filter Tahun Ajaran -->
+    <!-- Tombol Kembali + Tambah + Filter Tahun Ajaran -->
     <div class="mb-4 flex justify-between items-center flex-wrap">
-        <a class="bg-blue-600 text-white px-4 py-2 rounded mr-2 mb-2" href="/pamong/tabelmateri/tambah">Tambah</a>
+        <div class="flex items-center space-x-2 mb-2">
+            <a href="{{ url()->previous() }}" class="bg-gray-300 text-gray-800 px-4 py-2 rounded hover:bg-gray-400">⬅ Kembali</a>
+            <a href="/pamong/tabelmateri/tambah" class="bg-blue-600 text-white px-4 py-2 rounded">Tambah</a>
+        </div>
 
         <form method="GET" action="{{ route('pamong.materi') }}" class="mb-2">
             <label for="id_tahun_ajaran" class="mr-2 text-sm text-gray-700">Tahun Ajaran:</label>

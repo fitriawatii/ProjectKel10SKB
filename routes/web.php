@@ -148,6 +148,25 @@ Route::post('/pamong/tabelmateri/tambah/insert', [C_pamong::class, 'tambahmateri
 Route::get('/pamong/tabelmateri/edit/{id_materi}', [C_pamong::class, 'editmateri']);
 Route::delete('/pamong/tabelmateri/hapus/{id_materi}', [C_pamong::class, 'deletemateri'])->name('delete.materi');
 Route::post('/pamong/tabelmateri/update/{id_materi}', [C_pamong::class, 'updatemateri'])->name('update.materi');
+Route::get('pamong/materi', [C_pamong::class, 'pilihkelasmateri'])->name('pamong.materi');
+Route::get('pamong/materi/kelas/{id_kelas}', [C_pamong::class, 'materiByKelas']);
+Route::get('pamong/tugas', [C_pamong::class, 'pilihKelasTugas'])->name('pamong.tugas');
+Route::get('pamong/tugas/kelas/{id_kelas}', [C_pamong::class, 'tugasByKelas']);
+// Halaman form edit tugas
+Route::get('/pamong/tabeltugas/edit/{id_tugas}', [C_Pamong::class, 'edittugas'])->name('pamong.tugas.edit');
+
+// Proses update tugas (POST atau PUT tergantung form)
+Route::put('/pamong/tabeltugas/update/{id_tugas}', [C_Pamong::class, 'updatetugas'])->name('pamong.tugas.update');
+
+// Langkah 1: Pilih kelas
+Route::get('/pamong/nilai/pilihkelas', [C_Nilai::class, 'pilihKelasNilai'])->name('pamong.nilai.pilihkelas');
+
+// Langkah 2: Pilih tugas berdasarkan kelas
+Route::get('/pamong/nilai/tugas/{id_kelas}', [C_Nilai::class, 'pilihTugasNilai'])->name('pamong.nilai.pilihtugas');
+
+// Langkah 3: Tampilkan nilai berdasarkan tugas
+Route::get('/pamong/nilai/tugas/detail/{id_tugas}', [C_Nilai::class, 'detailNilai'])->name('pamong.nilai.detail');
+
 
 //dipakai
 Route::get('/formulirprogram', [C_kelolaformulirprogram::class, 'create'])->name('formulirprogram.create');

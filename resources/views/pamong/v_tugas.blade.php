@@ -4,11 +4,14 @@
 <h1 class="text-2xl font-bold mb-6">Data Tugas</h1>
 
 <div class="bg-white rounded shadow p-6">
-    <!-- Tombol Tambah & Dropdown Tahun Ajaran -->
-    <div class="mb-6 flex justify-between items-center">
-        <a class="bg-blue-600 text-white px-4 py-2 rounded" href="/pamong/tabeltugas/tambah">➕ Tambah</a>
+    <!-- Tombol Kembali, Tambah & Dropdown Tahun Ajaran -->
+    <div class="mb-6 flex justify-between items-center flex-wrap">
+        <div class="flex items-center space-x-2 mb-2">
+            <a href="{{ url()->previous() }}" class="bg-gray-300 text-gray-800 px-4 py-2 rounded hover:bg-gray-400">⬅ Kembali</a>
+            <a class="bg-blue-600 text-white px-4 py-2 rounded" href="/pamong/tabeltugas/tambah">➕ Tambah</a>
+        </div>
 
-        <form method="GET" action="{{ route('pamong.tugas') }}" class="flex items-center space-x-2">
+        <form method="GET" action="{{ route('pamong.tugas') }}" class="flex items-center space-x-2 mb-2">
             <label for="id_tahun_ajaran" class="text-sm text-gray-700">Tahun Ajaran:</label>
             <select name="id_tahun_ajaran" id="id_tahun_ajaran" onchange="this.form.submit()" class="border px-3 py-2 rounded">
                 @foreach($tahunAjaranList as $ta)

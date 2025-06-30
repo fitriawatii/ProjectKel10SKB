@@ -45,6 +45,60 @@ class C_nilai extends Controller
 
     return view('pamong.v_nilai', compact('data', 'tahunAjaranList', 'selectedTahun'));
 }
+public function pilihKelasNilai()
+{
+    $id_akun = session('user')->id_akun;
+    $id_pamong = DB::table('tb_pamong')->where('id_akun', $id_akun)->value('id_pamong');
+
+    // Ambil kelas yang diajar pamong berdasarkan tabel relasi pamong-kelas
+    $kelas = DB::table('tb_pamong_kelas')
+        ->join('tb_kelas', 'tb_pamong_kelas.id_kelas', '=', 'tb_kelas.id_kelas')
+        ->where('tb_pamong_kelas.id_pamong', $id_pamong)
+        ->select('tb_kelas.id_kelas', 'tb_kelas.nama_kelas')
+        ->distinct()
+        ->get();
+
+    return view('pamong..v_pilihkelasnilai', compact('kelas'));
+}
+
+public function pilihTugasNilai($id_kelas)
+{
+    $id_akun = session('user')->id_akun;
+    $id_pamong = DB::table('tb_pamong')->where('id_akun', $id_akun)->value('id_pamong');
+
+    $tugas = DB::table('tb_tugas')
+        ->where('id_kelas', $id_kelas)
+        ->where('id_pamong', $id_pamong)
+        ->get();
+
+    return view('pamong.v_pilihtugasnilai', compact('tugas', 'id_kelas'));
+}
+public function detailNilai($id_tugas)
+{
+    $data = DB::table('tb_pengumpulan_tugas')
+        ->join('tb_siswa', 'tb_pengumpulan_tugas.id_siswa', '=', 'tb_siswa.id_siswa')
+        ->join('tb_kelas', 'tb_siswa.id_kelas', '=', 'tb_kelas.id_kelas')
+        ->join('tb_tugas', 'tb_pengumpulan_tugas.id_tugas', '=', 'tb_tugas.id_tugas')
+        ->leftJoin('tb_nilai', function ($join) {
+            $join->on('tb_pengumpulan_tugas.id_tugas', '=', 'tb_nilai.id_tugas')
+                ->on('tb_pengumpulan_tugas.id_siswa', '=', 'tb_nilai.id_siswa');
+        })
+        ->where('tb_pengumpulan_tugas.id_tugas', $id_tugas)
+        ->select(
+            'tb_pengumpulan_tugas.id_pengumpulan',
+            'tb_pengumpulan_tugas.id_tugas',
+            'tb_pengumpulan_tugas.id_siswa',
+            'tb_pengumpulan_tugas.file_pengumpulan',
+            'tb_pengumpulan_tugas.tanggal_pengumpulan',
+            'tb_siswa.nama_lengkap as nama',
+            'tb_nilai.nilai',
+            'tb_nilai.komentar'
+        )
+        ->orderBy('tb_siswa.nama_lengkap', 'asc')
+        ->get();
+
+    return view('pamong.v_detailnilai', compact('data'));
+}
 
 
 

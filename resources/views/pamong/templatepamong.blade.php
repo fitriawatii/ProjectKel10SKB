@@ -19,13 +19,13 @@
                     <a href="/pamong/dashboard" class="flex items-center gap-3 py-2 px-4 rounded hover:bg-gray-100 transition">
                         <i class="fas fa-home w-5 text-blue-500"></i> Dashboard
                     </a>
-                    <a href="/pamong/tabelmateri" class="flex items-center gap-3 py-2 px-4 rounded hover:bg-gray-100 transition">
+                    <a href="/pamong/materi" class="flex items-center gap-3 py-2 px-4 rounded hover:bg-gray-100 transition">
                         <i class="fas fa-book-open w-5 text-blue-500"></i> Materi
                     </a>
-                    <a href="/pamong/tabeltugas" class="flex items-center gap-3 py-2 px-4 rounded hover:bg-gray-100 transition">
+                    <a href="/pamong/tugas" class="flex items-center gap-3 py-2 px-4 rounded hover:bg-gray-100 transition">
                         <i class="fas fa-tasks w-5 text-blue-500"></i> Tugas
                     </a>
-                    <a href="/pamong/nilai" class="flex items-center gap-3 py-2 px-4 rounded hover:bg-gray-100 transition">
+                    <a href="/pamong/nilai/pilihkelas" class="flex items-center gap-3 py-2 px-4 rounded hover:bg-gray-100 transition">
                         <i class="fas fa-clipboard-check w-5 text-blue-500"></i> Nilai
                     </a>
                     </a>
