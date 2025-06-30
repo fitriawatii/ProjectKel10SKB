@@ -10,7 +10,7 @@ class C_Tpesertadidik extends Controller
 {
     public function dashboard()
 {
-    $id_akun = session('user')->id_akun;
+    $id_akun = session('user')->id_akun ?? null;
     $siswa = DB::table('tb_siswa')->where('id_akun', $id_akun)->first();
 
     if (!$siswa) {
@@ -19,45 +19,51 @@ class C_Tpesertadidik extends Controller
 
     $id_siswa = $siswa->id_siswa;
     $id_kelas = $siswa->id_kelas;
+    $tanggal_daftar = $siswa->tanggal_daftar;
 
-    $tahunAjaranAktif = DB::table('tb_tahun_ajaran')->where('is_active', 1)->first();
+    $tahunAjaranAktif = DB::table('tb_tahun_ajaran')
+        ->where('is_active', 1)
+        ->first();
 
-    $totalTugas = DB::table('tb_tugas')
+    // Ambil data tugas sesuai kelas, tahun ajaran, dan setelah tanggal daftar
+    $dataTugas = DB::table('tb_tugas')
         ->where('id_kelas', $id_kelas)
         ->where('id_tahun_ajaran', $tahunAjaranAktif->id_tahun_ajaran)
-        ->count();
+        ->where('created_at', '>=', $tanggal_daftar)
+        ->get();
+
+    $totalTugas = $dataTugas->count();
 
     $totalPengumpulan = DB::table('tb_pengumpulan_tugas')
         ->where('id_siswa', $id_siswa)
+        ->whereIn('id_tugas', $dataTugas->pluck('id_tugas'))
         ->count();
 
-    $rataRataNilai = DB::table('tb_nilai')
-        ->where('id_siswa', $id_siswa)
-        ->avg('nilai');
+    // Cek apakah ada tugas yang relevan
+    $nilaiRata = null;
+    if ($dataTugas->count() > 0) {
+        $nilaiRata = DB::table('tb_nilai')
+            ->where('id_siswa', $id_siswa)
+            ->whereIn('id_tugas', $dataTugas->pluck('id_tugas'))
+            ->avg('nilai');
+    }
 
-    $mingguSaatIni = now()->weekOfMonth; // ambil minggu aktif dari tanggal saat ini
+    // Hitung minggu ke-n berdasarkan tanggal sekarang
+    $hariDalamBulan = now()->day;
+    $mingguSekarang = ceil($hariDalamBulan / 7); // Misal tgl 15 = minggu ke-3
 
     $jadwalMingguIni = DB::table('tb_jadwal')
-        ->join('tb_kelas', 'tb_jadwal.id_kelas', '=', 'tb_kelas.id_kelas')
         ->join('tb_mapel', 'tb_jadwal.id_mapel', '=', 'tb_mapel.id_mapel')
-        ->join('tb_pamong', 'tb_jadwal.id_pamong', '=', 'tb_pamong.id_pamong')
-        ->select(
-            'tb_jadwal.*',
-            'tb_kelas.nama_kelas as nama_kelas',
-            'tb_mapel.nama_mapel as nama_mapel',
-            'tb_pamong.nama_pamong as nama_pamong'
-        )
         ->where('tb_jadwal.id_kelas', $id_kelas)
         ->where('tb_jadwal.id_tahun_ajaran', $tahunAjaranAktif->id_tahun_ajaran)
-        ->where('tb_jadwal.minggu_ke', $mingguSaatIni)
-        ->orderByRaw("FIELD(hari, 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu')")
-        ->orderBy('jam_mulai')
+        ->where('tb_jadwal.minggu_ke', $mingguSekarang)
+        ->select('tb_jadwal.*', 'tb_mapel.nama_mapel')
         ->get();
 
     return view('pesertadidik.v_dashboard', [
         'totalTugas' => $totalTugas,
         'totalPengumpulan' => $totalPengumpulan,
-        'rataRataNilai' => round($rataRataNilai, 2),
+        'rataRataNilai' => is_null($nilaiRata) ? '-' : round($nilaiRata),
         'jadwalMingguIni' => $jadwalMingguIni
     ]);
 }
